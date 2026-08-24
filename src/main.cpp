@@ -553,7 +553,7 @@ llvm::json::Object documentationJson(const FunctionDoc &Doc) {
 class AstVisitor : public clang::RecursiveASTVisitor<AstVisitor> {
 public:
   AstVisitor(ASTContext &Context, SignatureCatalog &Signatures)
-      : SourceManager(Context.getSourceManager()), Signatures(Signatures) {}
+      : Sources(Context.getSourceManager()), Signatures(Signatures) {}
 
   bool VisitDeclaratorDecl(DeclaratorDecl *Declaration) {
     Signatures.collect(Declaration);
@@ -588,14 +588,14 @@ private:
       return false;
 
     const SourceLocation Location =
-        SourceManager.getExpansionLoc(Declaration.getLocation());
-    if (SourceManager.isInSystemHeader(Location))
+        Sources.getExpansionLoc(Declaration.getLocation());
+    if (Sources.isInSystemHeader(Location))
       return false;
 
     if (ApiRoots.empty())
       return true;
 
-    const clang::PresumedLoc Presumed = SourceManager.getPresumedLoc(Location);
+    const clang::PresumedLoc Presumed = Sources.getPresumedLoc(Location);
     if (Presumed.isInvalid())
       return false;
     const StringRef Filename(Presumed.getFilename());
@@ -604,7 +604,7 @@ private:
     });
   }
 
-  SourceManager &SourceManager;
+  SourceManager &Sources;
   SignatureCatalog &Signatures;
   std::unordered_set<const FunctionDecl *> SeenFunctions;
   std::vector<const FunctionDecl *> Functions;
@@ -619,9 +619,9 @@ std::string expressionText(const clang::Expr &Expression,
 }
 
 std::string declaredIn(const FunctionDecl &Declaration,
-                       const SourceManager &SourceManager) {
+                       const SourceManager &Sources) {
   const clang::PresumedLoc Location =
-      SourceManager.getPresumedLoc(Declaration.getLocation());
+      Sources.getPresumedLoc(Declaration.getLocation());
   return Location.isValid() ? apiRelativePath(Location.getFilename())
                             : std::string{};
 }
