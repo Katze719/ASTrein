@@ -9,17 +9,43 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-26.04, windows-2025]
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Enable MSVC environment
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+
+      - name: Select LLVM 22 (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo "CC=$(command -v clang-22)" >> "$GITHUB_ENV"
+          echo "CXX=$(command -v clang++-22)" >> "$GITHUB_ENV"
+
+      - name: Install LLVM 22.1.8 (Windows)
+        if: runner.os == 'Windows'
+        uses: KyleMayes/install-llvm-action@v2.0.9
+        with:
+          version: '22.1.8'
+          directory: ${{ runner.temp }}/llvm-22
+          force-url: https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/LLVM-22.1.8-win64.exe
+          env: true
+
+      - name: Show compiler version (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: '"$CXX" --version'
+
+      - name: Show compiler version (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '& $env:CXX --version'
 
       - name: Configure
         run: cmake --preset release-static

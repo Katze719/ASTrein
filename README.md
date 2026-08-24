@@ -9,6 +9,8 @@ required LLVM and Clang libraries, so the resulting executable does not need a
 separate LLVM/Clang installation at runtime. System C/C++ runtime libraries are
 still platform dependencies.
 
+Building ASTrein requires GCC 16 or newer, or LLVM/Clang 22 or newer.
+
 ## Build
 
 The reproducible release preset downloads the pinned LLVM source and builds

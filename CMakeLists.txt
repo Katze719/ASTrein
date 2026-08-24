@@ -99,7 +99,7 @@ target_include_directories(astrein SYSTEM PRIVATE ${ASTREIN_LLVM_INCLUDE_DIRS})
 target_compile_definitions(astrein PRIVATE
   ASTREIN_VERSION="${PROJECT_VERSION}")
 
-if(MSVC)
+if(MSVC OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
   target_compile_options(astrein PRIVATE
     /W4 /permissive- /Zc:__cplusplus /EHsc)
   target_compile_definitions(astrein PRIVATE
@@ -113,7 +113,7 @@ endif()
 # line templates must use the same setting or it will reference typeinfo that
 # intentionally does not exist in the static archives.
 if(NOT LLVM_ENABLE_RTTI)
-  if(MSVC)
+  if(MSVC OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     target_compile_options(astrein PRIVATE /GR-)
   else()
     target_compile_options(astrein PRIVATE -fno-rtti)
