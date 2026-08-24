@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(ASTrein VERSION 0.1.0 LANGUAGES C CXX)
+project(ASTrein VERSION 1.0.0 LANGUAGES C CXX)
 
 include(CTest)
 include(FetchContent)
