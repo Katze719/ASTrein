@@ -41,6 +41,10 @@ The executable is `build/release-static/bin/astrein.exe`. The same preset works
 with MSVC or `clang-cl`; CMake selects the compiler from the active developer
 environment.
 
+Every successful CI run publishes installable `x86_64` archives for Linux and
+Windows as workflow artifacts. Publishing a GitHub Release also attaches both
+archives directly to that release.
+
 For a quick development build against an already installed LLVM/Clang CMake
 package, use `dev-system`. This opt-in preset permits `clang-cpp` to be shared
 and is therefore not the release artifact.
@@ -62,6 +66,22 @@ astrein --mode=reduced \
   --output ffi_api.json \
   include/my_library/api.hpp -- -std=c++2c -Iinclude
 ```
+
+For a C ABI that marks exported functions with
+`__attribute__((visibility("default")))`, enable both export filters:
+
+```sh
+astrein --mode=reduced \
+  --require-c-linkage \
+  --require-default-visibility \
+  --public-header=cpp_core/serial.h \
+  --api-root=include \
+  --output=cpp_core_ffi_api.json \
+  build/ast/cpp_core_ffi_ast.cpp -- -std=c++2c -Iinclude
+```
+
+This single invocation replaces a separate Clang JSON dump followed by a
+reduction script.
 
 In PowerShell, use the same arguments on one line or PowerShell's backtick line
 continuation character.
@@ -120,7 +140,14 @@ are modeled exactly like top-level function parameters:
 
 For an unnamed callback parameter, the object still contains `type` and simply
 omits `name`. Doxygen `brief`, `param`, `return`, `details`, `note`, and
-`remark` commands are projected into the reduced representation.
+`remark` commands are read from Clang's structured comment AST and projected
+into the reduced representation. Inline commands such as `@p` retain their
+formatting, and `@code` blocks are emitted as fenced Markdown code blocks.
+
+Functions are ordered by qualified name for deterministic output.
+`--require-c-linkage` excludes C++-linkage functions, while
+`--require-default-visibility` excludes functions without an explicit
+default-visibility attribute. The filters are independent and opt-in.
 
 Use `--api-root` more than once when a public API spans multiple source roots.
 System-header declarations are always excluded from reduced output.

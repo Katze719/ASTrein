@@ -1,5 +1,6 @@
 #pragma once
 
+#include "model/ffi_filter.hpp"
 #include "model/output_mode.hpp"
 
 #include "clang/Tooling/Tooling.h"
@@ -20,7 +21,7 @@ class AstActionFactory final : public clang::tooling::FrontendActionFactory {
 public:
   AstActionFactory(llvm::raw_ostream &Output, OutputMode Mode,
                    std::string PublicHeader, RunState &State,
-                   const std::vector<std::string> &ApiRoots);
+                   const std::vector<std::string> &ApiRoots, FfiFilter Filter);
 
   std::unique_ptr<clang::FrontendAction> create() override;
 
@@ -30,6 +31,7 @@ private:
   std::string PublicHeader;
   RunState &State;
   const std::vector<std::string> &ApiRoots;
+  FfiFilter Filter;
 };
 
 } // namespace astrein

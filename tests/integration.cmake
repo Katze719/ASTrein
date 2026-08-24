@@ -117,6 +117,17 @@ if(NOT SCHEMA_REFERENCE STREQUAL "${SCHEMA_URI}" OR
   message(FATAL_ERROR "unexpected reduced schema header or function count")
 endif()
 
+set(EXPECTED_FUNCTION_NAMES
+    invoke invoke_direct invoke_legacy invoke_partial)
+foreach(INDEX RANGE 0 3)
+  list(GET EXPECTED_FUNCTION_NAMES ${INDEX} EXPECTED_NAME)
+  string(JSON ACTUAL_NAME GET "${REDUCED_CONTENT}" functions ${INDEX} name)
+  if(NOT ACTUAL_NAME STREQUAL EXPECTED_NAME)
+    message(FATAL_ERROR
+            "function ${INDEX} is ${ACTUAL_NAME}; expected ${EXPECTED_NAME}")
+  endif()
+endforeach()
+
 string(JSON ALIAS_CALLBACK_NAME GET "${REDUCED_CONTENT}"
        functions 0 parameters 0 callback parameters 0 name)
 string(JSON ALIAS_CALLBACK_TYPE GET "${REDUCED_CONTENT}"
@@ -126,11 +137,11 @@ string(JSON DIRECT_CALLBACK_NAME GET "${REDUCED_CONTENT}"
 string(JSON DIRECT_CALLBACK_TYPE GET "${REDUCED_CONTENT}"
        functions 1 parameters 0 callback parameters 1 type)
 string(JSON PARTIAL_CALLBACK_SECOND_NAME GET "${REDUCED_CONTENT}"
-       functions 2 parameters 0 callback parameters 1 name)
+       functions 3 parameters 0 callback parameters 1 name)
 string(JSON LEGACY_CALLBACK_FIRST_NAME GET "${REDUCED_CONTENT}"
-       functions 3 parameters 0 callback parameters 0 name)
+       functions 2 parameters 0 callback parameters 0 name)
 string(JSON LEGACY_CALLBACK_SECOND_TYPE GET "${REDUCED_CONTENT}"
-       functions 3 parameters 0 callback parameters 1 type)
+       functions 2 parameters 0 callback parameters 1 type)
 if(NOT ALIAS_CALLBACK_NAME STREQUAL "error_code" OR
    NOT ALIAS_CALLBACK_TYPE STREQUAL "int" OR
    NOT DIRECT_CALLBACK_NAME STREQUAL "status" OR
@@ -142,7 +153,7 @@ if(NOT ALIAS_CALLBACK_NAME STREQUAL "error_code" OR
 endif()
 
 string(JSON UNUSED ERROR_VARIABLE UNNAMED_ERROR GET "${REDUCED_CONTENT}"
-       functions 2 parameters 0 callback parameters 0 name)
+       functions 3 parameters 0 callback parameters 0 name)
 if(UNNAMED_ERROR STREQUAL "NOTFOUND")
   message(FATAL_ERROR "unnamed callback parameter unexpectedly has a name")
 endif()

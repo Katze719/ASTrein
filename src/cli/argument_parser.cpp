@@ -100,6 +100,15 @@ ArgumentParser::parse(int argc, const char *const *argv) const {
       continue;
     }
 
+    if (Argument == "--require-c-linkage") {
+      Result.Filter.RequireCLinkage = true;
+      continue;
+    }
+    if (Argument == "--require-default-visibility") {
+      Result.Filter.RequireDefaultVisibility = true;
+      continue;
+    }
+
     if (Argument == "-p" || Argument == "--build-path") {
       if (++Index >= argc)
         return std::unexpected("option '" + std::string(Argument) +
@@ -150,6 +159,10 @@ Options:
       --public-header <path> Header spelling stored in reduced output
       --api-root <directory> Include declarations below this directory;
                              may be specified more than once
+      --require-c-linkage    Include only functions with C language linkage
+      --require-default-visibility
+                             Include only functions explicitly marked with
+                             default visibility
   -p, --build-path <dir>     Load compile_commands.json from this directory
 
 Arguments after '--' are passed to Clang. If -p is also present, they are
@@ -157,7 +170,8 @@ appended to the matching compilation database command.
 
 Examples:
   astrein --output ast.json include/api.hpp -- -std=c++26 -Iinclude
-  astrein --mode=reduced --api-root=include include/api.hpp -- -std=c++26
+  astrein --mode=reduced --api-root=include --require-c-linkage \
+    --require-default-visibility include/api.hpp -- -std=c++26
   astrein -p build include/api.hpp
 )";
 }

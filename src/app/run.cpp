@@ -94,7 +94,7 @@ int run(int argc, const char *const *argv) {
       clang::tooling::getClangStripDependencyFileAdjuster());
   if (llvm::sys::getDefaultTargetTriple().empty()) {
     clang::tooling::CommandLineArguments HostTarget{
-        "--target=" + llvm::sys::getProcessTriple()};
+        std::string("--target=") + llvm::sys::getProcessTriple()};
     Tool.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
         HostTarget, clang::tooling::ArgumentInsertPosition::BEGIN));
   }
@@ -105,7 +105,7 @@ int run(int argc, const char *const *argv) {
       "-fparse-all-comments", clang::tooling::ArgumentInsertPosition::END));
 
   AstActionFactory Factory(*Output, Options.Mode, std::move(Header), State,
-                           Options.ApiRoots);
+                           Options.ApiRoots, Options.Filter);
   const int Result = Tool.run(&Factory);
   Output->flush();
   return Result == 0 && !State.Failed ? 0 : 1;

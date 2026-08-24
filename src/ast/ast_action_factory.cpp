@@ -8,13 +8,14 @@ namespace astrein {
 
 AstActionFactory::AstActionFactory(llvm::raw_ostream &Output, OutputMode Mode,
                                    std::string PublicHeader, RunState &State,
-                                   const std::vector<std::string> &ApiRoots)
+                                   const std::vector<std::string> &ApiRoots,
+                                   FfiFilter Filter)
     : Output(Output), Mode(Mode), PublicHeader(std::move(PublicHeader)),
-      State(State), ApiRoots(ApiRoots) {}
+      State(State), ApiRoots(ApiRoots), Filter(Filter) {}
 
 std::unique_ptr<clang::FrontendAction> AstActionFactory::create() {
   return std::make_unique<AstFrontendAction>(Output, Mode, PublicHeader, State,
-                                             ApiRoots);
+                                             ApiRoots, Filter);
 }
 
 } // namespace astrein

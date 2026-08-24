@@ -1,5 +1,6 @@
 #pragma once
 
+#include "model/ffi_filter.hpp"
 #include "clang/AST/RecursiveASTVisitor.h"
 
 #include <string>
@@ -21,7 +22,7 @@ class SignatureCatalog;
 class AstVisitor : public clang::RecursiveASTVisitor<AstVisitor> {
 public:
   AstVisitor(clang::ASTContext &Context, SignatureCatalog &Signatures,
-             const std::vector<std::string> &ApiRoots);
+             const std::vector<std::string> &ApiRoots, FfiFilter Filter);
 
   bool VisitDeclaratorDecl(clang::DeclaratorDecl *Declaration);
   bool VisitTypedefNameDecl(clang::TypedefNameDecl *Declaration);
@@ -37,6 +38,7 @@ private:
   clang::SourceManager &Sources;
   SignatureCatalog &Signatures;
   const std::vector<std::string> &ApiRoots;
+  FfiFilter Filter;
   std::unordered_set<const clang::FunctionDecl *> SeenFunctions;
   std::vector<const clang::FunctionDecl *> Functions;
 };

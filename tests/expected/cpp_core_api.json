@@ -1,0 +1,114 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v1.schema.json",
+  "functions": [
+    {
+      "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Register a callback invoked after bytes are read."
+      },
+      "name": "serialSetReadCallback",
+      "parameters": [
+        {
+          "callback": {
+            "parameters": [
+              {
+                "name": "bytes_read",
+                "type": "int"
+              }
+            ],
+            "returnType": "void"
+          },
+          "doc": {
+            "description": "Function receiving the byte count.",
+            "direction": "in"
+          },
+          "name": "callback_fn",
+          "type": "void (*)(int)"
+        }
+      ],
+      "returnType": "void",
+      "symbol": "serialSetReadCallback"
+    },
+    {
+      "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Write raw bytes to the serial port.",
+        "details": [
+          "The timeout for later bytes is `timeout_ms` multiplied by `multiplier`.",
+          "```c\nserialWrite(handle, data, size, 50, 1);\n```"
+        ],
+        "returns": "Bytes written or a negative error code."
+      },
+      "name": "serialWrite",
+      "parameters": [
+        {
+          "doc": {
+            "description": "Port handle.",
+            "direction": "in"
+          },
+          "name": "handle",
+          "type": "int"
+        },
+        {
+          "doc": {
+            "description": "Data to transmit.",
+            "direction": "in"
+          },
+          "name": "buffer",
+          "type": "const void *"
+        },
+        {
+          "doc": {
+            "description": "Number of bytes in `buffer`.",
+            "direction": "in"
+          },
+          "name": "buffer_size",
+          "type": "int"
+        },
+        {
+          "doc": {
+            "description": "Base timeout in milliseconds.",
+            "direction": "in"
+          },
+          "name": "timeout_ms",
+          "type": "int"
+        },
+        {
+          "doc": {
+            "description": "Timeout multiplier.",
+            "direction": "in"
+          },
+          "name": "multiplier",
+          "type": "int"
+        },
+        {
+          "callback": {
+            "parameters": [
+              {
+                "name": "error_code",
+                "type": "int"
+              },
+              {
+                "name": "message",
+                "type": "const char *"
+              }
+            ],
+            "returnType": "void"
+          },
+          "default": "nullptr",
+          "doc": {
+            "description": "Optional callback invoked on error.",
+            "direction": "in"
+          },
+          "name": "error_callback",
+          "type": "ErrorCallbackT"
+        }
+      ],
+      "returnType": "int",
+      "symbol": "serialWrite"
+    }
+  ],
+  "publicHeader": "cpp_core/serial.h",
+  "schema": "astrein_ffi_api",
+  "schemaVersion": 1
+}

@@ -4,6 +4,7 @@
 #include "functions/path_is_below.hpp"
 
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/Attr.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/Basic/SourceManager.h"
@@ -14,9 +15,10 @@
 namespace astrein {
 
 AstVisitor::AstVisitor(clang::ASTContext &Context, SignatureCatalog &Signatures,
-                       const std::vector<std::string> &ApiRoots)
+                       const std::vector<std::string> &ApiRoots,
+                       FfiFilter Filter)
     : Sources(Context.getSourceManager()), Signatures(Signatures),
-      ApiRoots(ApiRoots) {}
+      ApiRoots(ApiRoots), Filter(Filter) {}
 
 bool AstVisitor::VisitDeclaratorDecl(clang::DeclaratorDecl *Declaration) {
   Signatures.collect(Declaration);
@@ -48,6 +50,16 @@ bool AstVisitor::isFfiFunction(const clang::FunctionDecl &Declaration) const {
       Declaration.getIdentifier() == nullptr ||
       !Declaration.hasExternalFormalLinkage())
     return false;
+
+  if (Filter.RequireCLinkage && !Declaration.isExternC())
+    return false;
+
+  if (Filter.RequireDefaultVisibility) {
+    const auto *Visibility = Declaration.getAttr<clang::VisibilityAttr>();
+    if (Visibility == nullptr ||
+        Visibility->getVisibility() != clang::VisibilityAttr::Default)
+      return false;
+  }
 
   const clang::SourceLocation Location =
       Sources.getExpansionLoc(Declaration.getLocation());

@@ -12,6 +12,8 @@ foreach(EXPECTED
     "-h, --help"
     "-V, --version"
     "--mode <mode>"
+    "--require-c-linkage"
+    "--require-default-visibility"
     "-p, --build-path <dir>"
     "Examples:")
   string(FIND "${HELP_OUTPUT}" "${EXPECTED}" FOUND)

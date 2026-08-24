@@ -1,5 +1,6 @@
 #pragma once
 
+#include "model/ffi_filter.hpp"
 #include "model/output_mode.hpp"
 
 #include "clang/Frontend/FrontendAction.h"
@@ -20,7 +21,7 @@ class AstFrontendAction final : public clang::ASTFrontendAction {
 public:
   AstFrontendAction(llvm::raw_ostream &Output, OutputMode Mode,
                     std::string PublicHeader, RunState &State,
-                    const std::vector<std::string> &ApiRoots);
+                    const std::vector<std::string> &ApiRoots, FfiFilter Filter);
 
   std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &Compiler,
@@ -32,6 +33,7 @@ private:
   std::string PublicHeader;
   RunState &State;
   const std::vector<std::string> &ApiRoots;
+  FfiFilter Filter;
 };
 
 } // namespace astrein

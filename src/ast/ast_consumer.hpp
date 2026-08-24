@@ -1,5 +1,6 @@
 #pragma once
 
+#include "model/ffi_filter.hpp"
 #include "model/output_mode.hpp"
 
 #include "clang/AST/ASTConsumer.h"
@@ -29,7 +30,7 @@ public:
   AstConsumer(llvm::raw_ostream &Output, OutputMode Mode,
               std::string PublicHeader, RunState &State,
               clang::CompilerInstance &Compiler,
-              const std::vector<std::string> &ApiRoots);
+              const std::vector<std::string> &ApiRoots, FfiFilter Filter);
 
   void HandleTranslationUnit(clang::ASTContext &Context) override;
 
@@ -48,6 +49,7 @@ private:
   RunState &State;
   clang::CompilerInstance &Compiler;
   const std::vector<std::string> &ApiRoots;
+  FfiFilter Filter;
 };
 
 } // namespace astrein

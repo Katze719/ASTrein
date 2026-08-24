@@ -26,16 +26,17 @@ namespace astrein {
 AstConsumer::AstConsumer(llvm::raw_ostream &Output, OutputMode Mode,
                          std::string PublicHeader, RunState &State,
                          clang::CompilerInstance &Compiler,
-                         const std::vector<std::string> &ApiRoots)
+                         const std::vector<std::string> &ApiRoots,
+                         FfiFilter Filter)
     : Output(Output), Mode(Mode), PublicHeader(std::move(PublicHeader)),
-      State(State), Compiler(Compiler), ApiRoots(ApiRoots) {}
+      State(State), Compiler(Compiler), ApiRoots(ApiRoots), Filter(Filter) {}
 
 void AstConsumer::HandleTranslationUnit(clang::ASTContext &Context) {
   clang::PrintingPolicy Policy(Context.getLangOpts());
   Policy.SuppressScope = false;
 
   SignatureCatalog Signatures(Context, Policy);
-  AstVisitor Visitor(Context, Signatures, ApiRoots);
+  AstVisitor Visitor(Context, Signatures, ApiRoots, Filter);
   Visitor.TraverseDecl(Context.getTranslationUnitDecl());
   Signatures.finalizeDeclarations();
 
@@ -74,11 +75,9 @@ void AstConsumer::writeReduced(
     clang::ASTContext &Context, const SignatureCatalog &Signatures,
     std::vector<const clang::FunctionDecl *> Functions,
     const clang::PrintingPolicy &Policy) {
-  const clang::SourceManager &Sources = Context.getSourceManager();
-  std::ranges::stable_sort(Functions, [&](const clang::FunctionDecl *Left,
-                                          const clang::FunctionDecl *Right) {
-    return Sources.isBeforeInTranslationUnit(Left->getLocation(),
-                                             Right->getLocation());
+  std::ranges::stable_sort(Functions, [](const clang::FunctionDecl *Left,
+                                         const clang::FunctionDecl *Right) {
+    return Left->getQualifiedNameAsString() < Right->getQualifiedNameAsString();
   });
 
   llvm::json::Object Root;

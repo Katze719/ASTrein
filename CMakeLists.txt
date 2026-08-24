@@ -77,7 +77,6 @@ add_executable(astrein
   src/functions/documentation_json.cpp
   src/functions/expression_text.cpp
   src/functions/extract_documentation.cpp
-  src/functions/flush_comment_section.cpp
   src/functions/function_prototype.cpp
   src/functions/normalized_path.cpp
   src/functions/patch_full_ast.cpp
@@ -85,7 +84,6 @@ add_executable(astrein
   src/functions/pointer_id.cpp
   src/functions/print_type.cpp
   src/functions/reduced_function_json.cpp
-  src/functions/start_comment_command.cpp
   src/functions/strip_gcc_module_arguments.cpp
   src/model/callback_signature.cpp)
 
@@ -168,6 +166,14 @@ if(BUILD_TESTING)
     COMMAND ${CMAKE_COMMAND}
       -DASTREIN=$<TARGET_FILE:astrein>
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli.cmake)
+  add_test(
+    NAME astrein.cpp-core-golden
+    COMMAND ${CMAKE_COMMAND}
+      -DASTREIN=$<TARGET_FILE:astrein>
+      -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/cpp_core_api.hpp
+      -DGOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/tests/expected/cpp_core_api.json
+      -DTEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/tests
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp_core_golden.cmake)
 endif()
 
 install(TARGETS astrein RUNTIME DESTINATION bin)
