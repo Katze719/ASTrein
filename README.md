@@ -57,14 +57,14 @@ passed to Clang. Alternatively, use `-p <build-directory>` to load a
 
 ```sh
 # Full JSON AST (the default)
-astrein --output ast.json include/api.hpp -- -std=c++2c -Iinclude
+astrein --output ast.json include/api.hpp -- -std=c++26 -Iinclude
 
 # Reduced FFI API
 astrein --mode=reduced \
   --public-header=my_library/api.hpp \
   --api-root=include \
   --output ffi_api.json \
-  include/my_library/api.hpp -- -std=c++2c -Iinclude
+  include/my_library/api.hpp -- -std=c++26 -Iinclude
 ```
 
 For a C ABI that marks exported functions with
@@ -77,7 +77,7 @@ astrein --mode=reduced \
   --public-header=cpp_core/serial.h \
   --api-root=include \
   --output=cpp_core_ffi_api.json \
-  build/ast/cpp_core_ffi_ast.cpp -- -std=c++2c -Iinclude
+  build/ast/cpp_core_ffi_ast.cpp -- -std=c++26 -Iinclude
 ```
 
 This single invocation replaces a separate Clang JSON dump followed by a
