@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #define MODULE_API __attribute__((visibility("default")))
 
 using ErrorCallbackT = void (*)(int error_code, const char *message);

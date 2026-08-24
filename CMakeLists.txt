@@ -92,6 +92,21 @@ set_target_properties(astrein PROPERTIES
   CXX_EXTENSIONS OFF
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+if(ASTREIN_BUNDLED_LLVM)
+  string(REGEX MATCH "^[0-9]+" ASTREIN_CLANG_RESOURCE_VERSION
+    "${ASTREIN_LLVM_VERSION}")
+  set(ASTREIN_CLANG_RESOURCE_INCLUDE_DIR
+    "${llvm_project_BINARY_DIR}/lib/clang/${ASTREIN_CLANG_RESOURCE_VERSION}/include")
+  set(ASTREIN_BUILD_RESOURCE_INCLUDE_DIR
+    "${CMAKE_BINARY_DIR}/lib/clang/${ASTREIN_CLANG_RESOURCE_VERSION}/include")
+  add_dependencies(astrein clang-resource-headers)
+  add_custom_command(TARGET astrein POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "${ASTREIN_CLANG_RESOURCE_INCLUDE_DIR}"
+      "${ASTREIN_BUILD_RESOURCE_INCLUDE_DIR}"
+    COMMENT "Copying Clang resource headers for ASTrein")
+endif()
+
 target_include_directories(astrein PRIVATE src)
 target_include_directories(astrein SYSTEM PRIVATE ${ASTREIN_LLVM_INCLUDE_DIRS})
 target_compile_definitions(astrein PRIVATE
@@ -184,4 +199,6 @@ if(ASTREIN_BUNDLED_LLVM)
   install(FILES "${llvm_project_SOURCE_DIR}/LICENSE.TXT"
     DESTINATION share/astrein
     RENAME LLVM-LICENSE.txt)
+  install(DIRECTORY "${ASTREIN_CLANG_RESOURCE_INCLUDE_DIR}/"
+    DESTINATION "lib/clang/${ASTREIN_CLANG_RESOURCE_VERSION}/include")
 endif()
