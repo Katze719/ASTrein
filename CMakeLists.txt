@@ -61,15 +61,41 @@ else()
 endif()
 
 add_executable(astrein
-  src/main.cpp)
+  src/main.cpp
+  src/app/run.cpp
+  src/ast/ast_action_factory.cpp
+  src/ast/ast_consumer.cpp
+  src/ast/ast_frontend_action.cpp
+  src/ast/ast_visitor.cpp
+  src/ast/signature_catalog.cpp
+  src/cli/argument_parser.cpp
+  src/functions/api_relative_path.cpp
+  src/functions/append_words.cpp
+  src/functions/callback_json.cpp
+  src/functions/callback_parameters_json.cpp
+  src/functions/declared_in.cpp
+  src/functions/documentation_json.cpp
+  src/functions/expression_text.cpp
+  src/functions/extract_documentation.cpp
+  src/functions/flush_comment_section.cpp
+  src/functions/function_prototype.cpp
+  src/functions/normalized_path.cpp
+  src/functions/patch_full_ast.cpp
+  src/functions/path_is_below.cpp
+  src/functions/pointer_id.cpp
+  src/functions/print_type.cpp
+  src/functions/reduced_function_json.cpp
+  src/functions/start_comment_command.cpp
+  src/functions/strip_gcc_module_arguments.cpp
+  src/model/callback_signature.cpp)
 
 target_compile_features(astrein PRIVATE cxx_std_26)
 set_target_properties(astrein PROPERTIES
   CXX_EXTENSIONS OFF
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-target_include_directories(astrein SYSTEM PRIVATE
-  ${ASTREIN_LLVM_INCLUDE_DIRS})
+target_include_directories(astrein PRIVATE src)
+target_include_directories(astrein SYSTEM PRIVATE ${ASTREIN_LLVM_INCLUDE_DIRS})
 target_compile_definitions(astrein PRIVATE
   ASTREIN_VERSION="${PROJECT_VERSION}")
 
@@ -136,6 +162,11 @@ if(BUILD_TESTING)
       -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/callbacks.hpp
       -DTEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/tests
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.cmake)
+  add_test(
+    NAME astrein.command-line-interface
+    COMMAND ${CMAKE_COMMAND}
+      -DASTREIN=$<TARGET_FILE:astrein>
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli.cmake)
 endif()
 
 install(TARGETS astrein RUNTIME DESTINATION bin)

@@ -1,6 +1,8 @@
 file(MAKE_DIRECTORY "${TEST_DIR}")
 set(FULL_JSON "${TEST_DIR}/full.json")
 set(REDUCED_JSON "${TEST_DIR}/reduced.json")
+set(COMPDB_JSON "${TEST_DIR}/compdb.json")
+set(COMPDB_DIR "${TEST_DIR}/compdb")
 get_filename_component(FIXTURE_DIR "${FIXTURE}" DIRECTORY)
 
 execute_process(
@@ -12,9 +14,9 @@ if(NOT FULL_RESULT EQUAL 0)
 endif()
 
 execute_process(
-  COMMAND "${ASTREIN}" --mode=reduced --public-header=callbacks.hpp
-          "--api-root=${FIXTURE_DIR}"
-          --output "${REDUCED_JSON}" "${FIXTURE}" -- -std=c++2c -xc++
+  COMMAND "${ASTREIN}" --mode reduced --public-header callbacks.hpp
+          --api-root "${FIXTURE_DIR}"
+          -o "${REDUCED_JSON}" "${FIXTURE}" -- -std=c++2c -xc++
   RESULT_VARIABLE REDUCED_RESULT
   ERROR_VARIABLE REDUCED_ERROR)
 if(NOT REDUCED_RESULT EQUAL 0)
@@ -22,8 +24,39 @@ if(NOT REDUCED_RESULT EQUAL 0)
           "reduced mode failed (${REDUCED_RESULT}): ${REDUCED_ERROR}")
 endif()
 
+file(MAKE_DIRECTORY "${COMPDB_DIR}")
+file(TO_CMAKE_PATH "${FIXTURE}" FIXTURE_JSON_PATH)
+file(TO_CMAKE_PATH "${FIXTURE_DIR}" FIXTURE_DIR_JSON_PATH)
+file(WRITE "${COMPDB_DIR}/compile_commands.json"
+  "[\n"
+  "  {\n"
+  "    \"directory\": \"${FIXTURE_DIR_JSON_PATH}\",\n"
+  "    \"arguments\": [\"c++\", \"-std=c++2c\", \"-xc++\", "
+  "\"-fmodules-ts\", \"-fmodule-mapper=dummy.modmap\", "
+  "\"-fdeps-format=p1689r5\", \"-MD\", \"-MF\", \"fixture.d\", "
+  "\"-MT\", \"fixture.o\", \"-c\", \"${FIXTURE_JSON_PATH}\"],\n"
+  "    \"file\": \"${FIXTURE_JSON_PATH}\"\n"
+  "  }\n"
+  "]\n")
+execute_process(
+  COMMAND "${ASTREIN}" --mode=reduced -p "${COMPDB_DIR}"
+          --output "${COMPDB_JSON}" "${FIXTURE}"
+  RESULT_VARIABLE COMPDB_RESULT
+  ERROR_VARIABLE COMPDB_ERROR)
+if(NOT COMPDB_RESULT EQUAL 0)
+  message(FATAL_ERROR
+          "compilation-database mode failed (${COMPDB_RESULT}): "
+          "${COMPDB_ERROR}")
+endif()
+string(FIND "${COMPDB_ERROR}" "unknown argument" UNKNOWN_COMPDB_ARGUMENT)
+if(NOT UNKNOWN_COMPDB_ARGUMENT EQUAL -1)
+  message(FATAL_ERROR
+          "GCC compilation-database flags leaked into Clang: ${COMPDB_ERROR}")
+endif()
+
 file(READ "${FULL_JSON}" FULL_CONTENT)
 file(READ "${REDUCED_JSON}" REDUCED_CONTENT)
+file(READ "${COMPDB_JSON}" COMPDB_CONTENT)
 
 foreach(EXPECTED
     "\"error_code\""
@@ -39,6 +72,10 @@ foreach(EXPECTED
   string(FIND "${REDUCED_CONTENT}" "${EXPECTED}" FOUND)
   if(FOUND EQUAL -1)
     message(FATAL_ERROR "reduced JSON is missing ${EXPECTED}")
+  endif()
+  string(FIND "${COMPDB_CONTENT}" "${EXPECTED}" FOUND)
+  if(FOUND EQUAL -1)
+    message(FATAL_ERROR "compilation-database JSON is missing ${EXPECTED}")
   endif()
 endforeach()
 

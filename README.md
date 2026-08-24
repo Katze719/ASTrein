@@ -64,6 +64,27 @@ astrein --mode=reduced \
 In PowerShell, use the same arguments on one line or PowerShell's backtick line
 continuation character.
 
+### Command-line help
+
+Use the built-in help and version commands to inspect the installed executable:
+
+```sh
+astrein --help
+astrein --version
+```
+
+The general command form is:
+
+```text
+astrein [options] <translation-unit> [-- <clang-arguments>...]
+```
+
+ASTrein reports invalid options, missing option values, invalid output modes,
+and missing or extra translation units together with the full help text. These
+command-line errors return exit code `2`; Clang processing failures return `1`.
+Use `-p <build-directory>` to load `compile_commands.json`. Any arguments after
+`--` are passed to Clang and can also extend a compilation-database command.
+
 ### Full mode patch
 
 Clang interns function types, although parameter names belong to individual
