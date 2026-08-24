@@ -100,3 +100,9 @@ omits `name`. Doxygen `brief`, `param`, `return`, `details`, `note`, and
 
 Use `--api-root` more than once when a public API spans multiple source roots.
 System-header declarations are always excluded from reduced output.
+
+## License
+
+ASTrein is licensed under the [Apache License 2.0 with LLVM Exceptions](LICENSE)
+(`Apache-2.0 WITH LLVM-exception`). Third-party notices are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
