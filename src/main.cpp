@@ -26,6 +26,7 @@
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/Host.h"
 
 #include <algorithm>
 #include <cctype>
@@ -853,6 +854,12 @@ int main(int argc, const char **argv) {
 
   RunState State;
   clang::tooling::ClangTool Tool(Options->getCompilations(), Sources);
+  if (llvm::sys::getDefaultTargetTriple().empty()) {
+    clang::tooling::CommandLineArguments HostTarget{
+        "--target=" + llvm::sys::getProcessTriple()};
+    Tool.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
+        HostTarget, clang::tooling::ArgumentInsertPosition::BEGIN));
+  }
   Tool.appendArgumentsAdjuster(clang::tooling::getClangSyntaxOnlyAdjuster());
   Tool.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
       "-fparse-all-comments", clang::tooling::ArgumentInsertPosition::END));
