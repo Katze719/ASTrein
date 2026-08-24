@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <stddef.h>
 
 #define MODULE_API __attribute__((visibility("default")))
 
