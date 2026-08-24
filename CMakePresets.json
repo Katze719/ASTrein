@@ -1,0 +1,57 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "release-static",
+      "displayName": "Release (bundled static LLVM/Clang)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release-static",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ASTREIN_BUNDLED_LLVM": "ON",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "dev-system",
+      "displayName": "Development (system LLVM/Clang)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dev-system",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ASTREIN_BUNDLED_LLVM": "OFF",
+        "ASTREIN_ALLOW_SHARED_LLVM": "ON",
+        "BUILD_TESTING": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release-static",
+      "configurePreset": "release-static",
+      "targets": ["astrein"]
+    },
+    {
+      "name": "dev-system",
+      "configurePreset": "dev-system",
+      "targets": ["astrein"]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "release-static",
+      "configurePreset": "release-static",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "dev-system",
+      "configurePreset": "dev-system",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}

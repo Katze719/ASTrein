@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  static-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable MSVC environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Configure
+        run: cmake --preset release-static
+
+      - name: Build ASTrein
+        run: cmake --build --preset release-static --parallel 2
+
+      - name: Test
+        run: ctest --preset release-static
+
+      - name: Verify no LLVM/Clang shared dependency (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          if ldd build/release-static/bin/astrein | grep -E 'lib(LLVM|clang)'; then
+            echo 'Unexpected shared LLVM/Clang dependency' >&2
+            exit 1
+          fi
+
+      - name: Verify no LLVM/Clang DLL dependency (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $deps = (dumpbin /dependents build/release-static/bin/astrein.exe | Out-String)
+          if ($deps -match '(?im)^\s*(LLVM|clang).*\.dll\s*$') {
+            throw "Unexpected shared LLVM/Clang dependency`n$deps"
+          }
