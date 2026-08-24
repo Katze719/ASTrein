@@ -102,8 +102,9 @@ same canonical signature but use different names.
 
 ### Reduced mode
 
-Reduced output keeps the `cpp_core_ffi_api` schema and models callback
-parameters exactly like top-level function parameters:
+Reduced output uses the [`astrein_ffi_api` JSON Schema](schema/astrein-ffi-api-v1.schema.json)
+and identifies it through the top-level `$schema` property. Callback parameters
+are modeled exactly like top-level function parameters:
 
 ```json
 {

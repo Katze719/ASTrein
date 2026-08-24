@@ -82,7 +82,10 @@ void AstConsumer::writeReduced(
   });
 
   llvm::json::Object Root;
-  Root["schema"] = "cpp_core_ffi_api";
+  Root["$schema"] =
+      "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/"
+      "astrein-ffi-api-v1.schema.json";
+  Root["schema"] = "astrein_ffi_api";
   Root["schemaVersion"] = 1;
   Root["publicHeader"] = PublicHeader;
 

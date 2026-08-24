@@ -1,4 +1,6 @@
 file(MAKE_DIRECTORY "${TEST_DIR}")
+set(SCHEMA_URI
+  "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v1.schema.json")
 set(FULL_JSON "${TEST_DIR}/full.json")
 set(REDUCED_JSON "${TEST_DIR}/reduced.json")
 set(COMPDB_JSON "${TEST_DIR}/compdb.json")
@@ -57,6 +59,15 @@ endif()
 file(READ "${FULL_JSON}" FULL_CONTENT)
 file(READ "${REDUCED_JSON}" REDUCED_CONTENT)
 file(READ "${COMPDB_JSON}" COMPDB_CONTENT)
+file(READ "${SCHEMA_FILE}" SCHEMA_CONTENT)
+
+string(JSON SCHEMA_DIALECT GET "${SCHEMA_CONTENT}" "$schema")
+string(JSON SCHEMA_ID GET "${SCHEMA_CONTENT}" "$id")
+if(NOT SCHEMA_DIALECT STREQUAL
+       "https://json-schema.org/draft/2020-12/schema" OR
+   NOT SCHEMA_ID STREQUAL "${SCHEMA_URI}")
+  message(FATAL_ERROR "unexpected JSON Schema dialect or identifier")
+endif()
 
 foreach(EXPECTED
     "\"error_code\""
@@ -95,10 +106,12 @@ if(NOT LEGACY_NAMES EQUAL -1)
           "reduced JSON must model callback parameters as objects")
 endif()
 
+string(JSON SCHEMA_REFERENCE GET "${REDUCED_CONTENT}" "$schema")
 string(JSON SCHEMA GET "${REDUCED_CONTENT}" schema)
 string(JSON SCHEMA_VERSION GET "${REDUCED_CONTENT}" schemaVersion)
 string(JSON FUNCTION_COUNT LENGTH "${REDUCED_CONTENT}" functions)
-if(NOT SCHEMA STREQUAL "cpp_core_ffi_api" OR
+if(NOT SCHEMA_REFERENCE STREQUAL "${SCHEMA_URI}" OR
+   NOT SCHEMA STREQUAL "astrein_ffi_api" OR
    NOT SCHEMA_VERSION EQUAL 1 OR
    NOT FUNCTION_COUNT EQUAL 4)
   message(FATAL_ERROR "unexpected reduced schema header or function count")
@@ -135,7 +148,8 @@ if(UNNAMED_ERROR STREQUAL "NOTFOUND")
 endif()
 
 foreach(EXPECTED
-    "\"schema\": \"cpp_core_ffi_api\""
+    "\"$schema\": \"${SCHEMA_URI}\""
+    "\"schema\": \"astrein_ffi_api\""
     "\"declaredIn\": \"callbacks.hpp\""
     "\"name\": \"invoke\""
     "\"brief\": \"Invoke a named callback.\""
