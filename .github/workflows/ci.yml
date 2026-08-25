@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  LLVM_VERSION: '22.1.8'
+
 jobs:
   static-build:
     strategy:
@@ -31,20 +34,23 @@ jobs:
         with:
           arch: x64
 
-      - name: Select LLVM 22 (Linux)
+      - name: Select LLVM (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          echo "CC=$(command -v clang-22)" >> "$GITHUB_ENV"
-          echo "CXX=$(command -v clang++-22)" >> "$GITHUB_ENV"
+          llvm_major="${LLVM_VERSION%%.*}"
+          cc_path="$(command -v "clang-${llvm_major}")"
+          cxx_path="$(command -v "clang++-${llvm_major}")"
+          echo "CC=${cc_path}" >> "$GITHUB_ENV"
+          echo "CXX=${cxx_path}" >> "$GITHUB_ENV"
 
-      - name: Install LLVM 22.1.8 (Windows)
+      - name: Install LLVM (Windows)
         if: runner.os == 'Windows'
         uses: KyleMayes/install-llvm-action@v2.0.9
         with:
-          version: '22.1.8'
-          directory: ${{ runner.temp }}/llvm-22
-          force-url: https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/LLVM-22.1.8-win64.exe
+          version: ${{ env.LLVM_VERSION }}
+          directory: ${{ runner.temp }}/llvm-${{ env.LLVM_VERSION }}
+          force-url: https://github.com/llvm/llvm-project/releases/download/llvmorg-${{ env.LLVM_VERSION }}/LLVM-${{ env.LLVM_VERSION }}-win64.exe
           env: true
 
       - name: Show compiler version (Linux)
@@ -56,6 +62,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: '& $env:CXX --version'
+
+      - name: Cache bundled LLVM build
+        uses: actions/cache@v5
+        with:
+          path: build/release-static/_deps
+          key: astrein-llvm-${{ matrix.os }}-${{ env.LLVM_VERSION }}-v1-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json') }}
 
       - name: Configure
         run: cmake --preset release-static
