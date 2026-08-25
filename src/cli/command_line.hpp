@@ -18,7 +18,7 @@ struct CommandLine {
   std::vector<std::string> ApiRoots;
   FfiFilter Filter;
   std::string SourcePath;
-  std::optional<std::string> BuildPath;
+  std::optional<std::string> CompilationDatabasePath;
   std::vector<std::string> ClangArguments;
 };
 

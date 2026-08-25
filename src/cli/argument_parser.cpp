@@ -46,6 +46,10 @@ ArgumentParser::parse(int argc, const char *const *argv) const {
                                "' (expected 'full' or 'reduced')");
       continue;
     }
+    if (Argument == "--ffi") {
+      Result.Mode = OutputMode::Reduced;
+      continue;
+    }
     if (Argument.starts_with("--mode=")) {
       const std::string_view Value = Argument.substr(7);
       if (Value == "full")
@@ -109,25 +113,33 @@ ArgumentParser::parse(int argc, const char *const *argv) const {
       continue;
     }
 
-    if (Argument == "-p" || Argument == "--build-path") {
+    if (Argument == "-p" || Argument == "--build-path" ||
+        Argument == "--compile-commands") {
       if (++Index >= argc)
         return std::unexpected("option '" + std::string(Argument) +
                                "' requires a value");
-      Result.BuildPath = argv[Index];
+      Result.CompilationDatabasePath = argv[Index];
       continue;
     }
     if (Argument.starts_with("-p=")) {
       const std::string_view Value = Argument.substr(3);
       if (Value.empty())
         return std::unexpected("option '-p' requires a value");
-      Result.BuildPath = std::string(Value);
+      Result.CompilationDatabasePath = std::string(Value);
       continue;
     }
     if (Argument.starts_with("--build-path=")) {
       const std::string_view Value = Argument.substr(13);
       if (Value.empty())
         return std::unexpected("option '--build-path' requires a value");
-      Result.BuildPath = std::string(Value);
+      Result.CompilationDatabasePath = std::string(Value);
+      continue;
+    }
+    if (Argument.starts_with("--compile-commands=")) {
+      const std::string_view Value = Argument.substr(19);
+      if (Value.empty())
+        return std::unexpected("option '--compile-commands' requires a value");
+      Result.CompilationDatabasePath = std::string(Value);
       continue;
     }
 
@@ -137,42 +149,59 @@ ArgumentParser::parse(int argc, const char *const *argv) const {
     if (!Result.SourcePath.empty())
       return std::unexpected("unexpected positional argument '" +
                              std::string(Argument) +
-                             "' (exactly one translation unit is required)");
+                             "' (exactly one input file is required)");
     Result.SourcePath = Argument;
   }
 
   if (Result.SourcePath.empty())
-    return std::unexpected("missing translation unit");
+    return std::unexpected("missing input file");
   return Result;
 }
 
 std::string ArgumentParser::helpText() const {
-  return R"(Usage: astrein [options] <translation-unit> [-- <clang-arguments>...]
+  return R"(Usage: astrein [options] <input-file> [-- <extra-clang-arguments>...]
 
-Emit Clang's JSON AST or a reduced JSON API for FFI binding generators.
+Create JSON from one C or C++ header/source file using Clang.
 
-Options:
-  -h, --help                 Show this help text and exit
-  -V, --version              Show ASTrein and Clang versions and exit
+Quick start:
+  Compact FFI API from a self-contained C++ header:
+    astrein --ffi --api-root include -o ffi-api.json \
+      include/my_library/api.hpp -- -std=c++20 -Iinclude
+
+  Reuse an existing compile_commands.json:
+    astrein --ffi --api-root include -o ffi-api.json \
+      --compile-commands build include/my_library/api.hpp
+
+Input and compiler configuration:
+  <input-file>               C/C++ header or source file parsed by Clang
+  -p, --compile-commands <path>
+                             Read compile_commands.json from a file or directory
+      --build-path <dir>     Compatibility alias for --compile-commands
+  -- <arguments>             Pass extra arguments to Clang; with a compilation
+                             database, these extend its selected command
+
+Output:
+      --ffi                  Emit the compact FFI API (same as --mode=reduced)
       --mode <mode>          Output mode: full (default) or reduced
   -o, --output <path>        Write JSON to path; use '-' for stdout (default)
-      --public-header <path> Header spelling stored in reduced output
-      --api-root <directory> Include declarations below this directory;
+
+Reduced-output selection:
+      --api-root <directory> Include declarations located below this directory;
                              may be specified more than once
+      --public-header <path> Set publicHeader metadata only
+                             (does not select the input file)
       --require-c-linkage    Include only functions with C language linkage
       --require-default-visibility
                              Include only functions explicitly marked with
                              default visibility
-  -p, --build-path <dir>     Load compile_commands.json from this directory
 
-Arguments after '--' are passed to Clang. If -p is also present, they are
-appended to the matching compilation database command.
+General:
+  -h, --help                 Show this help text and exit
+  -V, --version              Show ASTrein and Clang versions and exit
 
-Examples:
-  astrein --output ast.json include/api.hpp -- -std=c++26 -Iinclude
-  astrein --mode=reduced --api-root=include --require-c-linkage \
-    --require-default-visibility include/api.hpp -- -std=c++26
-  astrein -p build include/api.hpp
+A header is a valid input file. Use either --compile-commands to reuse project
+settings, or pass the required language mode, include paths, and defines after
+'--'. When both are present, the extra arguments extend the database command.
 )";
 }
 

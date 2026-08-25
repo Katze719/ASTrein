@@ -1,20 +1,366 @@
 # ASTrein
 
-ASTrein is a C++26 command-line tool that emits Clang's JSON AST without losing
-the source-level names of callback parameters. It also provides a smaller,
-stable JSON view intended for FFI binding generators.
+ASTrein turns a C or C++ header/source file into JSON by parsing it with Clang.
+It is primarily intended for tools that generate FFI bindings or inspect a
+public C API.
+
+For most users, the compact and stable FFI output selected by `--ffi` is the
+right starting point. The complete Clang JSON AST remains available for
+advanced consumers.
+
+## See the result first
+
+Given this public header:
+
+```cpp
+// include/api.hpp
+#pragma once
+
+/**
+ * @brief Add two numbers.
+ * @param[in] left First number.
+ * @param[in] right Second number.
+ * @return The sum of both numbers.
+ */
+extern "C" int add(int left, int right);
+```
+
+Run:
+
+```sh
+astrein --ffi \
+  --api-root include \
+  --output ffi-api.json \
+  include/api.hpp -- -xc++ -std=c++20 -Iinclude
+```
+
+`ffi-api.json` contains a compact description suitable for a binding
+generator:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v1.schema.json",
+  "functions": [
+    {
+      "declaredIn": "api.hpp",
+      "doc": {
+        "brief": "Add two numbers.",
+        "returns": "The sum of both numbers."
+      },
+      "name": "add",
+      "parameters": [
+        {
+          "doc": {
+            "description": "First number.",
+            "direction": "in"
+          },
+          "name": "left",
+          "type": "int"
+        },
+        {
+          "doc": {
+            "description": "Second number.",
+            "direction": "in"
+          },
+          "name": "right",
+          "type": "int"
+        }
+      ],
+      "returnType": "int",
+      "symbol": "add"
+    }
+  ],
+  "publicHeader": "api.hpp",
+  "schema": "astrein_ffi_api",
+  "schemaVersion": 1
+}
+```
+
+ASTrein retains function names, parameter names and types, callback signatures,
+default arguments, and supported Doxygen documentation.
+
+## Get started
+
+Download the archive for Linux or Windows from the
+[latest release](https://github.com/Katze719/ASTrein/releases/latest), unpack
+it, and check the executable:
+
+```sh
+astrein --version
+```
+
+Then choose one of the following two ways to give ASTrein the compiler settings
+needed to understand your code.
+
+### Option A: use an existing build
+
+This is the recommended option for a real project. Generate
+`compile_commands.json` with CMake:
+
+```sh
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake --build build
+```
+
+Point ASTrein at either the build directory or the JSON file:
+
+```sh
+astrein --ffi \
+  --compile-commands build \
+  --api-root include \
+  --output ffi-api.json \
+  include/my_library/api.hpp
+```
+
+ASTrein uses the matching compile command for a source file. If the header
+itself is not listed, Clang infers a suitable command from nearby project
+sources. This supplies the same language standard, include paths, defines, and
+target settings as the real build.
+
+The following form is equivalent:
+
+```sh
+astrein --ffi \
+  --compile-commands build/compile_commands.json \
+  --api-root include \
+  --output ffi-api.json \
+  include/my_library/api.hpp
+```
+
+### Option B: pass compiler settings directly
+
+For a self-contained C++ header, put the required Clang arguments after `--`:
+
+```sh
+astrein --ffi \
+  --api-root include \
+  --output ffi-api.json \
+  include/my_library/api.hpp -- -xc++ -std=c++20 -Iinclude
+```
+
+For a C header, select C instead:
+
+```sh
+astrein --ffi \
+  --api-root include \
+  --output ffi-api.json \
+  include/my_library/api.h -- -xc -std=c17 -Iinclude
+```
+
+Pass any required defines in the same place, for example
+`-- -xc++ -std=c++20 -Iinclude -DMY_LIBRARY_STATIC`.
+
+## Understand the command
+
+The command has three parts:
+
+```text
+astrein [ASTrein options] <input-file> [-- <extra Clang arguments>]
+```
+
+| Part | Purpose |
+| --- | --- |
+| `<input-file>` | Header or source file that Clang parses |
+| `--compile-commands` | Reuses compiler settings from the project build |
+| Arguments after `--` | Supplies or extends Clang compiler settings |
+| `--api-root` | Limits reduced output to declarations below a directory |
+| `--public-header` | Overrides only the `publicHeader` text in the JSON |
+| `--output` | Selects the output file; the default is standard output |
+
+A header is a valid input file. Internally, Clang parses that input as one
+translation unit. You only need a separate `.cpp` input when its includes,
+defines, or include order are part of the API's required context.
+
+`--public-header` does not choose what ASTrein parses. It is useful when the
+input is a wrapper source file but generated bindings should refer to a public
+header:
+
+```sh
+astrein --ffi \
+  --compile-commands build \
+  --api-root include \
+  --public-header my_library/api.hpp \
+  --output ffi-api.json \
+  src/my_library_ffi_ast.cpp
+```
+
+## Common recipes
+
+### Include only an exported C ABI
+
+For a C API declared inside a C++ project, require C linkage:
+
+```sh
+astrein --ffi \
+  --compile-commands build \
+  --api-root include \
+  --require-c-linkage \
+  --output ffi-api.json \
+  include/my_library/api.hpp
+```
+
+If the API also marks exports with
+`__attribute__((visibility("default")))`, add
+`--require-default-visibility`. The two filters are independent.
+
+### Emit the complete Clang AST
+
+Full mode is the default and is intended for consumers that need Clang's
+complete JSON representation:
+
+```sh
+astrein --mode full \
+  --compile-commands build \
+  --output clang-ast.json \
+  include/my_library/api.hpp
+```
+
+### Extend a compilation-database command
+
+Arguments after `--` are appended even when `--compile-commands` is used:
+
+```sh
+astrein --ffi \
+  --compile-commands build \
+  --api-root include \
+  include/my_library/api.hpp -- -DMY_LIBRARY_STATIC
+```
+
+### What `compile_commands.json` looks like
+
+Build systems normally generate this file; you usually do not write it by
+hand. A minimal entry looks like this:
+
+```json
+[
+  {
+    "directory": "/absolute/path/to/project",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-Iinclude",
+      "-DMY_LIBRARY_STATIC",
+      "-c",
+      "src/library.cpp"
+    ],
+    "file": "src/library.cpp"
+  }
+]
+```
+
+With this file at `build/compile_commands.json`, ASTrein can infer the compile
+settings for `include/my_library/api.hpp` from the project source entry:
+
+```sh
+astrein --ffi --compile-commands build \
+  --api-root include include/my_library/api.hpp
+```
+
+## Troubleshooting
+
+### Clang cannot find a header or a type
+
+ASTrein must see the same include paths, defines, language standard, and target
+as the real compiler. Prefer `--compile-commands build`, or add the missing
+settings after `--`.
+
+### No compile command is available
+
+Make sure the database contains at least one C or C++ source entry:
+
+```sh
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+```
+
+If different source files use very different settings, pass a small wrapper
+`.cpp` that includes the public header and has its own database entry.
+
+### The output contains declarations from dependencies
+
+Add one or more `--api-root` options. Only declarations located below those
+directories are then included in reduced output. System headers are always
+excluded.
+
+### A function is missing
+
+Check conditional defines and include paths first. Also verify whether
+`--require-c-linkage` or `--require-default-visibility` filtered it out.
+
+### A `.h` file is parsed as the wrong language
+
+Pass `-xc` for C or `-xc++` for C++ after `--`. A compilation database
+normally supplies this context automatically.
+
+Command-line usage errors return exit code `2`; Clang parsing failures return
+`1`.
+
+## Command-line reference
+
+Run `astrein --help` for the complete reference:
+
+```text
+Usage: astrein [options] <input-file> [-- <extra-clang-arguments>...]
+```
+
+The most important options are:
+
+| Option | Meaning |
+| --- | --- |
+| `--ffi` | Emit the compact FFI API |
+| `--mode full` | Emit the complete Clang JSON AST |
+| `-o, --output <path>` | Write JSON to a file; `-` means standard output |
+| `-p, --compile-commands <path>` | Load `compile_commands.json` |
+| `--api-root <directory>` | Select API declaration roots; repeatable |
+| `--public-header <path>` | Override `publicHeader` output metadata |
+| `--require-c-linkage` | Keep only functions with C linkage |
+| `--require-default-visibility` | Keep only explicitly visible functions |
+
+The previous `--build-path` name remains available as a compatibility alias
+for `--compile-commands`.
+
+In PowerShell, put an example on one line or use PowerShell's backtick line
+continuation character instead of `\`.
+
+## Output modes
+
+### Reduced FFI API
+
+Reduced output uses the
+[`astrein_ffi_api` JSON Schema](schema/astrein-ffi-api-v1.schema.json) and
+identifies it through the top-level `$schema` property.
+
+Callback parameters are modeled like top-level function parameters. For an
+unnamed callback parameter, its object contains `type` and omits `name`.
+Doxygen `brief`, `param`, `return`, `details`, `note`, and `remark`
+commands are projected into the reduced representation. Inline commands such
+as `@p` retain their formatting, and `@code` blocks become fenced Markdown
+code blocks.
+
+Functions are ordered by qualified name for deterministic output.
+
+### Full Clang AST
+
+Clang interns function types, although parameter names belong to individual
+source declarations rather than to a canonical type. ASTrein therefore adds:
+
+- `parameters` objects to `FunctionProtoType` when source spelling is
+  available;
+- `callbackParameters` objects to the corresponding `TypedefDecl`,
+  `TypeAliasDecl`, and callback `ParmVarDecl`.
+
+The declaration-local field is authoritative if multiple callbacks share the
+same canonical signature but use different names.
+
+## Build from source
 
 Linux and Windows are first-class targets. Release builds statically link the
 required LLVM and Clang libraries, so the resulting executable does not need a
-separate LLVM/Clang installation at runtime. System C/C++ runtime libraries are
-still platform dependencies.
+separate LLVM/Clang installation at runtime. System C/C++ runtime libraries
+remain platform dependencies.
 
-Building ASTrein requires GCC 16 or newer, or LLVM/Clang 22 or newer.
-
-## Build
-
-The reproducible release preset downloads the pinned LLVM source and builds
-only the libraries needed by ASTrein. The first build is intentionally large.
+Building ASTrein requires GCC 16 or newer, or LLVM/Clang 22 or newer. The
+reproducible release preset downloads the pinned LLVM source and builds only
+the required libraries, so the first build is intentionally large.
 
 ### Linux
 
@@ -28,8 +374,8 @@ The executable is `build/release-static/bin/astrein`.
 
 ### Windows
 
-Run these commands from an x64 Native Tools Command Prompt for Visual Studio
-with CMake, Ninja, and Git available:
+Run from an x64 Native Tools Command Prompt for Visual Studio with CMake,
+Ninja, and Git available:
 
 ```powershell
 cmake --preset release-static
@@ -37,169 +383,16 @@ cmake --build --preset release-static --parallel
 ctest --preset release-static
 ```
 
-The executable is `build/release-static/bin/astrein.exe`. The same preset works
-with MSVC or `clang-cl`; CMake selects the compiler from the active developer
-environment.
+The executable is `build/release-static/bin/astrein.exe`. The same preset
+works with MSVC or `clang-cl`; CMake selects the compiler from the active
+developer environment.
 
-Every successful CI run publishes installable `x86_64` archives for Linux and
-Windows as workflow artifacts. Publishing a GitHub Release also attaches both
-archives directly to that release.
-
-For a quick development build against an already installed LLVM/Clang CMake
-package, use `dev-system`. This opt-in preset permits `clang-cpp` to be shared
-and is therefore not the release artifact.
-
-## Usage
-
-ASTrein accepts exactly one translation unit. Arguments following `--` are
-passed to Clang. Alternatively, use `-p <build-directory>` to load a
-`compile_commands.json` entry.
-
-```sh
-# Full JSON AST (the default)
-astrein --output ast.json include/api.hpp -- -std=c++26 -Iinclude
-
-# Reduced FFI API
-astrein --mode=reduced \
-  --public-header=my_library/api.hpp \
-  --api-root=include \
-  --output ffi_api.json \
-  include/my_library/api.hpp -- -std=c++26 -Iinclude
-```
-
-### Compilation database example
-
-A compilation database supplies the language mode, include paths, defines, and
-other Clang arguments for the input file. Since build systems usually create
-entries for source files rather than headers, a small translation unit can
-include the public API:
-
-```cpp
-// build/ast/my_library_ffi_ast.cpp
-#include "my_library/api.hpp"
-```
-
-For example, `build/compile_commands.json` can contain the following entry.
-Replace `/path/to/project` with the absolute path to the project root:
-
-```json
-[
-  {
-    "directory": "/path/to/project",
-    "arguments": [
-      "clang++",
-      "-std=c++26",
-      "-Iinclude",
-      "-c",
-      "build/ast/my_library_ffi_ast.cpp"
-    ],
-    "file": "build/ast/my_library_ffi_ast.cpp"
-  }
-]
-```
-
-Run ASTrein from the project root and point `-p` at the directory containing
-the compilation database:
-
-```sh
-astrein --mode=reduced \
-  --public-header=my_library/api.hpp \
-  --api-root=include \
-  --output=ffi_api.json \
-  -p build \
-  build/ast/my_library_ffi_ast.cpp
-```
-
-The positional input must match the `file` represented by the compilation
-database entry. Extra arguments after `--` extend the selected command.
-
-For a C ABI that marks exported functions with
-`__attribute__((visibility("default")))`, enable both export filters:
-
-```sh
-astrein --mode=reduced \
-  --require-c-linkage \
-  --require-default-visibility \
-  --public-header=cpp_core/serial.h \
-  --api-root=include \
-  --output=cpp_core_ffi_api.json \
-  build/ast/cpp_core_ffi_ast.cpp -- -std=c++26 -Iinclude
-```
-
-This single invocation replaces a separate Clang JSON dump followed by a
-reduction script.
-
-In PowerShell, use the same arguments on one line or PowerShell's backtick line
-continuation character.
-
-### Command-line help
-
-Use the built-in help and version commands to inspect the installed executable:
-
-```sh
-astrein --help
-astrein --version
-```
-
-The general command form is:
-
-```text
-astrein [options] <translation-unit> [-- <clang-arguments>...]
-```
-
-ASTrein reports invalid options, missing option values, invalid output modes,
-and missing or extra translation units together with the full help text. These
-command-line errors return exit code `2`; Clang processing failures return `1`.
-Use `-p <build-directory>` to load `compile_commands.json`. Any arguments after
-`--` are passed to Clang and can also extend a compilation-database command.
-
-### Full mode patch
-
-Clang interns function types, although parameter names belong to individual
-source declarations rather than to a canonical type. ASTrein therefore emits:
-
-- `parameters` objects on `FunctionProtoType` when a source spelling is
-  available;
-- `callbackParameters` objects on the corresponding `TypedefDecl`,
-  `TypeAliasDecl`, and callback `ParmVarDecl`.
-
-The declaration-local field is authoritative if multiple callbacks share the
-same canonical signature but use different names.
-
-### Reduced mode
-
-Reduced output uses the [`astrein_ffi_api` JSON Schema](schema/astrein-ffi-api-v1.schema.json)
-and identifies it through the top-level `$schema` property. Callback parameters
-are modeled exactly like top-level function parameters:
-
-```json
-{
-  "callback": {
-    "returnType": "void",
-    "parameters": [
-      { "name": "error_code", "type": "int" },
-      { "name": "message", "type": "const char *" }
-    ]
-  }
-}
-```
-
-For an unnamed callback parameter, the object still contains `type` and simply
-omits `name`. Doxygen `brief`, `param`, `return`, `details`, `note`, and
-`remark` commands are read from Clang's structured comment AST and projected
-into the reduced representation. Inline commands such as `@p` retain their
-formatting, and `@code` blocks are emitted as fenced Markdown code blocks.
-
-Functions are ordered by qualified name for deterministic output.
-`--require-c-linkage` excludes C++-linkage functions, while
-`--require-default-visibility` excludes functions without an explicit
-default-visibility attribute. The filters are independent and opt-in.
-
-Use `--api-root` more than once when a public API spans multiple source roots.
-System-header declarations are always excluded from reduced output.
+For a quick development build against an installed LLVM/Clang CMake package,
+use `dev-system`. This opt-in preset permits `clang-cpp` to be shared and is
+not the self-contained release artifact.
 
 ## License
 
 ASTrein is licensed under the [Apache License 2.0 with LLVM Exceptions](LICENSE)
 (`Apache-2.0 WITH LLVM-exception`). Third-party notices are listed in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

@@ -8,14 +8,16 @@ if(NOT HELP_RESULT EQUAL 0 OR NOT HELP_ERROR STREQUAL "")
           "--help failed (${HELP_RESULT}); stderr: ${HELP_ERROR}")
 endif()
 foreach(EXPECTED
-    "Usage: astrein [options] <translation-unit>"
+    "Usage: astrein [options] <input-file>"
     "-h, --help"
     "-V, --version"
+    "--ffi"
     "--mode <mode>"
     "--require-c-linkage"
     "--require-default-visibility"
-    "-p, --build-path <dir>"
-    "Examples:")
+    "-p, --compile-commands <path>"
+    "does not select the input file"
+    "A header is a valid input file")
   string(FIND "${HELP_OUTPUT}" "${EXPECTED}" FOUND)
   if(FOUND EQUAL -1)
     message(FATAL_ERROR "--help output is missing: ${EXPECTED}")
@@ -49,7 +51,7 @@ if(NOT UNKNOWN_RESULT EQUAL 2)
 endif()
 foreach(EXPECTED
     "astrein: error: unknown option '--unknown-option'"
-    "Usage: astrein [options] <translation-unit>")
+    "Usage: astrein [options] <input-file>")
   string(FIND "${UNKNOWN_ERROR}" "${EXPECTED}" FOUND)
   if(FOUND EQUAL -1)
     message(FATAL_ERROR "unknown-option error is missing: ${EXPECTED}")
@@ -66,8 +68,8 @@ if(NOT MISSING_RESULT EQUAL 2)
           "missing input returned ${MISSING_RESULT} instead of 2")
 endif()
 foreach(EXPECTED
-    "astrein: error: missing translation unit"
-    "Usage: astrein [options] <translation-unit>")
+    "astrein: error: missing input file"
+    "Usage: astrein [options] <input-file>")
   string(FIND "${MISSING_ERROR}" "${EXPECTED}" FOUND)
   if(FOUND EQUAL -1)
     message(FATAL_ERROR "missing-input error is missing: ${EXPECTED}")
@@ -111,10 +113,72 @@ if(NOT EXTRA_RESULT EQUAL 2)
 endif()
 foreach(EXPECTED
     "unexpected positional argument 'second.cpp'"
-    "exactly one translation unit is required"
-    "Usage: astrein [options] <translation-unit>")
+    "exactly one input file is required"
+    "Usage: astrein [options] <input-file>")
   string(FIND "${EXTRA_ERROR}" "${EXPECTED}" FOUND)
   if(FOUND EQUAL -1)
     message(FATAL_ERROR "extra-input error is missing: ${EXPECTED}")
+  endif()
+endforeach()
+
+execute_process(
+  COMMAND "${ASTREIN}" file-that-does-not-exist.cpp
+  RESULT_VARIABLE NOT_FOUND_RESULT
+  OUTPUT_VARIABLE NOT_FOUND_OUTPUT
+  ERROR_VARIABLE NOT_FOUND_ERROR)
+if(NOT NOT_FOUND_RESULT EQUAL 2)
+  message(FATAL_ERROR
+          "missing file returned ${NOT_FOUND_RESULT} instead of 2")
+endif()
+foreach(EXPECTED
+    "input file 'file-that-does-not-exist.cpp' does not exist"
+    "pass a C or C++ header/source file as the positional input")
+  string(FIND "${NOT_FOUND_ERROR}" "${EXPECTED}" FOUND)
+  if(FOUND EQUAL -1)
+    message(FATAL_ERROR "missing-file error is missing: ${EXPECTED}")
+  endif()
+endforeach()
+
+execute_process(
+  COMMAND "${ASTREIN}" --compile-commands missing-compilation-database
+          "${CMAKE_CURRENT_LIST_FILE}"
+  RESULT_VARIABLE COMPDB_RESULT
+  OUTPUT_VARIABLE COMPDB_OUTPUT
+  ERROR_VARIABLE COMPDB_ERROR)
+if(NOT COMPDB_RESULT EQUAL 2)
+  message(FATAL_ERROR
+          "missing compilation database returned ${COMPDB_RESULT} instead of 2")
+endif()
+foreach(EXPECTED
+    "cannot load compile_commands.json from 'missing-compilation-database'"
+    "cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
+  string(FIND "${COMPDB_ERROR}" "${EXPECTED}" FOUND)
+  if(FOUND EQUAL -1)
+    message(FATAL_ERROR
+            "missing-compilation-database error is missing: ${EXPECTED}")
+  endif()
+endforeach()
+
+set(EMPTY_COMPDB_DIR "${CMAKE_CURRENT_BINARY_DIR}/empty-compdb")
+file(MAKE_DIRECTORY "${EMPTY_COMPDB_DIR}")
+file(WRITE "${EMPTY_COMPDB_DIR}/compile_commands.json" "[]\n")
+execute_process(
+  COMMAND "${ASTREIN}"
+          --compile-commands "${EMPTY_COMPDB_DIR}/compile_commands.json"
+          "${CMAKE_CURRENT_LIST_FILE}"
+  RESULT_VARIABLE NO_COMMAND_RESULT
+  OUTPUT_VARIABLE NO_COMMAND_OUTPUT
+  ERROR_VARIABLE NO_COMMAND_ERROR)
+if(NOT NO_COMMAND_RESULT EQUAL 2)
+  message(FATAL_ERROR
+          "empty compilation database returned ${NO_COMMAND_RESULT} instead of 2")
+endif()
+foreach(EXPECTED
+    "no compile command is available for input file"
+    "make sure compile_commands.json contains at least one C/C++ source file"
+    "pass Clang arguments after '--'")
+  string(FIND "${NO_COMMAND_ERROR}" "${EXPECTED}" FOUND)
+  if(FOUND EQUAL -1)
+    message(FATAL_ERROR "no-command error is missing: ${EXPECTED}")
   endif()
 endforeach()

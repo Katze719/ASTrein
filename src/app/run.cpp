@@ -22,6 +22,19 @@
 #include <vector>
 
 namespace astrein {
+namespace {
+
+std::string compilationDatabaseDirectory(const std::string &Path) {
+  llvm::SmallString<256> Directory(Path);
+  if (llvm::sys::path::filename(Directory) == "compile_commands.json") {
+    llvm::sys::path::remove_filename(Directory);
+    if (Directory.empty())
+      return ".";
+  }
+  return Directory.str().str();
+}
+
+} // namespace
 
 int run(int argc, const char *const *argv) {
   const ArgumentParser Parser;
@@ -42,6 +55,14 @@ int run(int argc, const char *const *argv) {
     return 0;
   }
 
+  if (!llvm::sys::fs::exists(Options.SourcePath)) {
+    llvm::errs() << "astrein: error: input file '" << Options.SourcePath
+                 << "' does not exist\n"
+                    "hint: pass a C or C++ header/source file as the "
+                    "positional input\n";
+    return 2;
+  }
+
   for (std::string &Root : Options.ApiRoots) {
     llvm::SmallString<256> Absolute(Root);
     if (std::error_code Error = llvm::sys::fs::make_absolute(Absolute)) {
@@ -54,13 +75,29 @@ int run(int argc, const char *const *argv) {
   }
 
   std::unique_ptr<clang::tooling::CompilationDatabase> Compilations;
-  if (Options.BuildPath.has_value()) {
+  if (Options.CompilationDatabasePath.has_value()) {
+    const std::string DatabaseDirectory =
+        compilationDatabaseDirectory(*Options.CompilationDatabasePath);
     std::string Error;
     Compilations = clang::tooling::CompilationDatabase::loadFromDirectory(
-        *Options.BuildPath, Error);
+        DatabaseDirectory, Error);
     if (!Compilations) {
-      llvm::errs() << "astrein: error: cannot load compilation database from '"
-                   << *Options.BuildPath << "': " << Error << '\n';
+      llvm::errs()
+          << "astrein: error: cannot load compile_commands.json from '"
+          << *Options.CompilationDatabasePath << "': " << Error << '\n'
+          << "hint: with CMake, generate it using: cmake -S . -B build "
+             "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON\n";
+      return 2;
+    }
+    Compilations =
+        clang::tooling::inferMissingCompileCommands(std::move(Compilations));
+    if (Compilations->getCompileCommands(Options.SourcePath).empty()) {
+      llvm::errs()
+          << "astrein: error: no compile command is available for input file '"
+          << Options.SourcePath << "'\n"
+          << "hint: make sure compile_commands.json contains at least one "
+             "C/C++ source file, or omit --compile-commands and pass Clang "
+             "arguments after '--'\n";
       return 2;
     }
   } else {
@@ -83,8 +120,16 @@ int run(int argc, const char *const *argv) {
   }
 
   std::string Header = Options.PublicHeader;
-  if (Header.empty())
-    Header = apiRelativePath(Options.SourcePath, Options.ApiRoots);
+  if (Header.empty()) {
+    llvm::SmallString<256> AbsoluteSource(Options.SourcePath);
+    if (std::error_code Error = llvm::sys::fs::make_absolute(AbsoluteSource)) {
+      llvm::errs() << "astrein: error: cannot resolve input file '"
+                   << Options.SourcePath << "': " << Error.message() << '\n';
+      return 2;
+    }
+    llvm::sys::path::remove_dots(AbsoluteSource, true);
+    Header = apiRelativePath(AbsoluteSource, Options.ApiRoots);
+  }
 
   const std::vector<std::string> Sources{Options.SourcePath};
   RunState State;
@@ -98,11 +143,15 @@ int run(int argc, const char *const *argv) {
     Tool.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
         HostTarget, clang::tooling::ArgumentInsertPosition::BEGIN));
   }
-  if (Options.BuildPath.has_value() && !Options.ClangArguments.empty())
+  if (Options.CompilationDatabasePath.has_value() &&
+      !Options.ClangArguments.empty())
     Tool.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
         Options.ClangArguments, clang::tooling::ArgumentInsertPosition::END));
   Tool.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
       "-fparse-all-comments", clang::tooling::ArgumentInsertPosition::END));
+  Tool.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
+      "-Wno-pragma-once-outside-header",
+      clang::tooling::ArgumentInsertPosition::END));
 
   AstActionFactory Factory(*Output, Options.Mode, std::move(Header), State,
                            Options.ApiRoots, Options.Filter);

@@ -97,15 +97,35 @@ if(ASTREIN_BUNDLED_LLVM)
     "${ASTREIN_LLVM_VERSION}")
   set(ASTREIN_CLANG_RESOURCE_INCLUDE_DIR
     "${llvm_project_BINARY_DIR}/lib/clang/${ASTREIN_CLANG_RESOURCE_VERSION}/include")
-  set(ASTREIN_BUILD_RESOURCE_INCLUDE_DIR
-    "${CMAKE_BINARY_DIR}/lib/clang/${ASTREIN_CLANG_RESOURCE_VERSION}/include")
   add_dependencies(astrein clang-resource-headers)
-  add_custom_command(TARGET astrein POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-      "${ASTREIN_CLANG_RESOURCE_INCLUDE_DIR}"
-      "${ASTREIN_BUILD_RESOURCE_INCLUDE_DIR}"
-    COMMENT "Copying Clang resource headers for ASTrein")
+else()
+  find_program(ASTREIN_CLANG_EXECUTABLE
+    NAMES "clang-${LLVM_VERSION_MAJOR}" clang
+    HINTS "${LLVM_TOOLS_BINARY_DIR}"
+    REQUIRED)
+  execute_process(
+    COMMAND "${ASTREIN_CLANG_EXECUTABLE}" -print-resource-dir
+    RESULT_VARIABLE ASTREIN_RESOURCE_DIR_RESULT
+    OUTPUT_VARIABLE ASTREIN_CLANG_RESOURCE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(NOT ASTREIN_RESOURCE_DIR_RESULT EQUAL 0 OR
+     NOT IS_DIRECTORY "${ASTREIN_CLANG_RESOURCE_DIR}/include")
+    message(FATAL_ERROR
+      "Cannot locate the Clang resource headers using "
+      "${ASTREIN_CLANG_EXECUTABLE} -print-resource-dir")
+  endif()
+  set(ASTREIN_CLANG_RESOURCE_VERSION "${LLVM_VERSION_MAJOR}")
+  set(ASTREIN_CLANG_RESOURCE_INCLUDE_DIR
+    "${ASTREIN_CLANG_RESOURCE_DIR}/include")
 endif()
+
+set(ASTREIN_BUILD_RESOURCE_INCLUDE_DIR
+  "${CMAKE_BINARY_DIR}/lib/clang/${ASTREIN_CLANG_RESOURCE_VERSION}/include")
+add_custom_command(TARGET astrein POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${ASTREIN_CLANG_RESOURCE_INCLUDE_DIR}"
+    "${ASTREIN_BUILD_RESOURCE_INCLUDE_DIR}"
+  COMMENT "Copying Clang resource headers for ASTrein")
 
 target_include_directories(astrein PRIVATE src)
 target_include_directories(astrein SYSTEM PRIVATE ${ASTREIN_LLVM_INCLUDE_DIRS})

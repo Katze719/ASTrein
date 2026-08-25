@@ -4,7 +4,9 @@ set(SCHEMA_URI
 set(FULL_JSON "${TEST_DIR}/full.json")
 set(REDUCED_JSON "${TEST_DIR}/reduced.json")
 set(COMPDB_JSON "${TEST_DIR}/compdb.json")
+set(COMPDB_ALIAS_JSON "${TEST_DIR}/compdb-alias.json")
 set(COMPDB_DIR "${TEST_DIR}/compdb")
+set(COMPDB_ANCHOR "${COMPDB_DIR}/callbacks_ast.cpp")
 get_filename_component(FIXTURE_DIR "${FIXTURE}" DIRECTORY)
 
 execute_process(
@@ -27,8 +29,10 @@ if(NOT REDUCED_RESULT EQUAL 0)
 endif()
 
 file(MAKE_DIRECTORY "${COMPDB_DIR}")
+file(WRITE "${COMPDB_ANCHOR}" "#include \"callbacks.hpp\"\n")
 file(TO_CMAKE_PATH "${FIXTURE}" FIXTURE_JSON_PATH)
 file(TO_CMAKE_PATH "${FIXTURE_DIR}" FIXTURE_DIR_JSON_PATH)
+file(TO_CMAKE_PATH "${COMPDB_ANCHOR}" COMPDB_ANCHOR_JSON_PATH)
 file(WRITE "${COMPDB_DIR}/compile_commands.json"
   "[\n"
   "  {\n"
@@ -36,8 +40,8 @@ file(WRITE "${COMPDB_DIR}/compile_commands.json"
   "    \"arguments\": [\"c++\", \"-std=c++2c\", \"-xc++\", "
   "\"-fmodules-ts\", \"-fmodule-mapper=dummy.modmap\", "
   "\"-fdeps-format=p1689r5\", \"-MD\", \"-MF\", \"fixture.d\", "
-  "\"-MT\", \"fixture.o\", \"-c\", \"${FIXTURE_JSON_PATH}\"],\n"
-  "    \"file\": \"${FIXTURE_JSON_PATH}\"\n"
+  "\"-MT\", \"fixture.o\", \"-c\", \"${COMPDB_ANCHOR_JSON_PATH}\"],\n"
+  "    \"file\": \"${COMPDB_ANCHOR_JSON_PATH}\"\n"
   "  }\n"
   "]\n")
 execute_process(
@@ -56,9 +60,23 @@ if(NOT UNKNOWN_COMPDB_ARGUMENT EQUAL -1)
           "GCC compilation-database flags leaked into Clang: ${COMPDB_ERROR}")
 endif()
 
+execute_process(
+  COMMAND "${ASTREIN}" --ffi
+          "--compile-commands=${COMPDB_DIR}/compile_commands.json"
+          --api-root "${FIXTURE_DIR}"
+          --output "${COMPDB_ALIAS_JSON}" "${FIXTURE}"
+  RESULT_VARIABLE COMPDB_ALIAS_RESULT
+  ERROR_VARIABLE COMPDB_ALIAS_ERROR)
+if(NOT COMPDB_ALIAS_RESULT EQUAL 0)
+  message(FATAL_ERROR
+          "compile-commands alias failed (${COMPDB_ALIAS_RESULT}): "
+          "${COMPDB_ALIAS_ERROR}")
+endif()
+
 file(READ "${FULL_JSON}" FULL_CONTENT)
 file(READ "${REDUCED_JSON}" REDUCED_CONTENT)
 file(READ "${COMPDB_JSON}" COMPDB_CONTENT)
+file(READ "${COMPDB_ALIAS_JSON}" COMPDB_ALIAS_CONTENT)
 file(READ "${SCHEMA_FILE}" SCHEMA_CONTENT)
 
 string(JSON SCHEMA_DIALECT GET "${SCHEMA_CONTENT}" "$schema")
@@ -88,7 +106,25 @@ foreach(EXPECTED
   if(FOUND EQUAL -1)
     message(FATAL_ERROR "compilation-database JSON is missing ${EXPECTED}")
   endif()
+  string(FIND "${COMPDB_ALIAS_CONTENT}" "${EXPECTED}" FOUND)
+  if(FOUND EQUAL -1)
+    message(FATAL_ERROR
+            "--compile-commands JSON is missing ${EXPECTED}")
+  endif()
 endforeach()
+
+string(FIND "${COMPDB_ALIAS_CONTENT}"
+       "\"publicHeader\": \"callbacks.hpp\"" COMPDB_ALIAS_HEADER)
+if(COMPDB_ALIAS_HEADER EQUAL -1)
+  message(FATAL_ERROR
+          "default publicHeader is not relative to --api-root")
+endif()
+string(FIND "${COMPDB_ALIAS_ERROR}"
+       "pragma-once-outside-header" HEADER_WARNING)
+if(NOT HEADER_WARNING EQUAL -1)
+  message(FATAL_ERROR
+          "direct header input emitted an irrelevant pragma-once warning")
+endif()
 
 string(FIND "${FULL_CONTENT}" "\"callbackParameters\"" FULL_PARAMETERS)
 if(FULL_PARAMETERS EQUAL -1)
