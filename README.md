@@ -67,6 +67,52 @@ astrein --mode=reduced \
   include/my_library/api.hpp -- -std=c++26 -Iinclude
 ```
 
+### Compilation database example
+
+A compilation database supplies the language mode, include paths, defines, and
+other Clang arguments for the input file. Since build systems usually create
+entries for source files rather than headers, a small translation unit can
+include the public API:
+
+```cpp
+// build/ast/my_library_ffi_ast.cpp
+#include "my_library/api.hpp"
+```
+
+For example, `build/compile_commands.json` can contain the following entry.
+Replace `/path/to/project` with the absolute path to the project root:
+
+```json
+[
+  {
+    "directory": "/path/to/project",
+    "arguments": [
+      "clang++",
+      "-std=c++26",
+      "-Iinclude",
+      "-c",
+      "build/ast/my_library_ffi_ast.cpp"
+    ],
+    "file": "build/ast/my_library_ffi_ast.cpp"
+  }
+]
+```
+
+Run ASTrein from the project root and point `-p` at the directory containing
+the compilation database:
+
+```sh
+astrein --mode=reduced \
+  --public-header=my_library/api.hpp \
+  --api-root=include \
+  --output=ffi_api.json \
+  -p build \
+  build/ast/my_library_ffi_ast.cpp
+```
+
+The positional input must match the `file` represented by the compilation
+database entry. Extra arguments after `--` extend the selected command.
+
 For a C ABI that marks exported functions with
 `__attribute__((visibility("default")))`, enable both export filters:
 
