@@ -121,6 +121,7 @@ jobs:
           pattern: astrein-*
           path: release-assets
           merge-multiple: true
+          skip-decompress: true
 
       - name: Attach artifacts to release
         env:
