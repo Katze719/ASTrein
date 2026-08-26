@@ -2,10 +2,14 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    branches: ['main']
   pull_request:
   release:
     types: [published]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
 
 permissions:
   contents: read
@@ -21,6 +25,8 @@ jobs:
         include:
           - os: ubuntu-26.04
             archive: astrein-linux-x86_64.tar.gz
+          - os: ubuntu-26.04-arm
+            archive: astrein-linux-aarch64.tar.gz
           - os: windows-2025
             archive: astrein-windows-x86_64.zip
     runs-on: ${{ matrix.os }}
@@ -66,8 +72,11 @@ jobs:
       - name: Cache bundled LLVM build
         uses: actions/cache@v5
         with:
-          path: build/release-static/_deps
-          key: astrein-llvm-${{ matrix.os }}-${{ env.LLVM_VERSION }}-v1-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json') }}
+          path: |
+            build/release-static/_deps
+            build/release-static/.ninja_deps
+            build/release-static/.ninja_log
+          key: astrein-llvm-${{ matrix.os }}-${{ env.LLVM_VERSION }}-v2-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json') }}
 
       - name: Configure
         run: cmake --preset release-static

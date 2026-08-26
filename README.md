@@ -127,6 +127,48 @@ astrein --ffi \
   include/my_library/api.hpp
 ```
 
+### Parse a cross-compiled target
+
+ASTrein runs on the host and does not execute code for the parsed target. An
+x86-64 ASTrein binary can therefore inspect an AArch64 build when its
+compilation database contains the cross-compiler settings:
+
+```sh
+cmake -S . -B build-aarch64 -G Ninja \
+  -DCMAKE_SYSTEM_NAME=Linux \
+  -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+  -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+  -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+cmake --build build-aarch64
+
+astrein --ffi \
+  --compile-commands build-aarch64 \
+  --api-root include \
+  --output ffi-api-aarch64.json \
+  include/my_library/api.hpp
+```
+
+The cross-toolchain and target sysroot referenced by `compile_commands.json`
+must be installed on the host. This approach preserves target-specific
+preprocessor definitions, include paths, type interpretation, and other
+compiler settings. Generate separate output for each target when those
+settings can change the public API.
+
+For a self-contained header without a compilation database, pass the Clang
+target and sysroot explicitly:
+
+```sh
+astrein --ffi \
+  --api-root include \
+  --output ffi-api-aarch64.json \
+  include/my_library/api.hpp -- \
+  -xc++ -std=c++20 -Iinclude \
+  --target=aarch64-linux-gnu \
+  --sysroot=/path/to/aarch64-sysroot
+```
+
 ### Option B: pass compiler settings directly
 
 For a self-contained C++ header, put the required Clang arguments after `--`:
