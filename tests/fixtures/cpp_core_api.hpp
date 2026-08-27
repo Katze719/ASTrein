@@ -2,7 +2,11 @@
 
 #include <stddef.h>
 
+#ifdef _WIN32
+#define MODULE_API __declspec(dllexport)
+#else
 #define MODULE_API __attribute__((visibility("default")))
+#endif
 
 using ErrorCallbackT = void (*)(int error_code, const char *message);
 
@@ -37,6 +41,9 @@ MODULE_API void serialSetReadCallback(void (*callback_fn)(int bytes_read));
 
 void serialWithoutVisibility();
 __attribute__((visibility("hidden"))) void serialHidden();
+#ifdef _WIN32
+__declspec(dllimport) void serialImported();
+#endif
 
 } // extern "C"
 
