@@ -56,8 +56,10 @@ bool AstVisitor::isFfiFunction(const clang::FunctionDecl &Declaration) const {
 
   if (Filter.RequireDefaultVisibility) {
     const auto *Visibility = Declaration.getAttr<clang::VisibilityAttr>();
-    if (Visibility == nullptr ||
-        Visibility->getVisibility() != clang::VisibilityAttr::Default)
+    const bool HasDefaultVisibility =
+        Visibility != nullptr &&
+        Visibility->getVisibility() == clang::VisibilityAttr::Default;
+    if (!HasDefaultVisibility && !Declaration.hasAttr<clang::DLLExportAttr>())
       return false;
   }
 
