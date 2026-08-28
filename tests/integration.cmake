@@ -1,6 +1,6 @@
 file(MAKE_DIRECTORY "${TEST_DIR}")
 set(SCHEMA_URI
-  "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v1.schema.json")
+  "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v2.schema.json")
 set(FULL_JSON "${TEST_DIR}/full.json")
 set(REDUCED_JSON "${TEST_DIR}/reduced.json")
 set(COMPDB_JSON "${TEST_DIR}/compdb.json")
@@ -155,10 +155,12 @@ string(JSON SCHEMA_REFERENCE GET "${REDUCED_CONTENT}" "$schema")
 string(JSON SCHEMA GET "${REDUCED_CONTENT}" schema)
 string(JSON SCHEMA_VERSION GET "${REDUCED_CONTENT}" schemaVersion)
 string(JSON FUNCTION_COUNT LENGTH "${REDUCED_CONTENT}" functions)
+string(JSON STRUCT_COUNT LENGTH "${REDUCED_CONTENT}" structs)
 if(NOT SCHEMA_REFERENCE STREQUAL "${SCHEMA_URI}" OR
    NOT SCHEMA STREQUAL "astrein_ffi_api" OR
-   NOT SCHEMA_VERSION EQUAL 1 OR
-   NOT FUNCTION_COUNT EQUAL 4)
+   NOT SCHEMA_VERSION EQUAL 2 OR
+   NOT FUNCTION_COUNT EQUAL 4 OR
+   NOT STRUCT_COUNT EQUAL 0)
   message(FATAL_ERROR "unexpected reduced schema header or function count")
 endif()
 

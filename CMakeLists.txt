@@ -84,7 +84,9 @@ add_executable(astrein
   src/functions/pointer_id.cpp
   src/functions/print_type.cpp
   src/functions/reduced_function_json.cpp
+  src/functions/reduced_struct_json.cpp
   src/functions/strip_gcc_module_arguments.cpp
+  src/functions/used_structs.cpp
   src/model/callback_signature.cpp)
 
 target_compile_features(astrein PRIVATE cxx_std_26)
@@ -193,7 +195,7 @@ if(BUILD_TESTING)
     COMMAND ${CMAKE_COMMAND}
       -DASTREIN=$<TARGET_FILE:astrein>
       -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/callbacks.hpp
-      -DSCHEMA_FILE=${CMAKE_CURRENT_SOURCE_DIR}/schema/astrein-ffi-api-v1.schema.json
+      -DSCHEMA_FILE=${CMAKE_CURRENT_SOURCE_DIR}/schema/astrein-ffi-api-v2.schema.json
       -DTEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/tests
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.cmake)
   add_test(
@@ -214,6 +216,7 @@ endif()
 install(TARGETS astrein RUNTIME DESTINATION bin)
 install(FILES LICENSE THIRD_PARTY_NOTICES.md
   schema/astrein-ffi-api-v1.schema.json
+  schema/astrein-ffi-api-v2.schema.json
   DESTINATION share/astrein)
 if(ASTREIN_BUNDLED_LLVM)
   install(FILES "${llvm_project_SOURCE_DIR}/LICENSE.TXT"

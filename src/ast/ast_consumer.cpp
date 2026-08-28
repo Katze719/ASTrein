@@ -4,6 +4,8 @@
 #include "ast/signature_catalog.hpp"
 #include "functions/patch_full_ast.hpp"
 #include "functions/reduced_function_json.hpp"
+#include "functions/reduced_struct_json.hpp"
+#include "functions/used_structs.hpp"
 #include "model/run_state.hpp"
 
 #include "clang/AST/ASTContext.h"
@@ -95,9 +97,9 @@ void AstConsumer::writeReduced(
   llvm::json::Object Root;
   Root["$schema"] =
       "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/"
-      "astrein-ffi-api-v1.schema.json";
+      "astrein-ffi-api-v2.schema.json";
   Root["schema"] = "astrein_ffi_api";
-  Root["schemaVersion"] = 1;
+  Root["schemaVersion"] = 2;
   Root["publicHeader"] = PublicHeader;
 
   clang::ASTNameGenerator NameGenerator(Context);
@@ -107,6 +109,15 @@ void AstConsumer::writeReduced(
     JsonFunctions.emplace_back(reducedFunctionJson(
         *Function, Context, Signatures, NameGenerator, Policy, ApiRoots));
   Root["functions"] = std::move(JsonFunctions);
+
+  const std::vector<StructDefinition> Structs =
+      usedStructs(Functions, Context, ApiRoots);
+  llvm::json::Array JsonStructs;
+  JsonStructs.reserve(Structs.size());
+  for (const StructDefinition &Definition : Structs)
+    JsonStructs.emplace_back(
+        reducedStructJson(Definition, Context, Policy, ApiRoots));
+  Root["structs"] = std::move(JsonStructs);
   writeJson(Output, llvm::json::Value(std::move(Root)), Minify);
 }
 

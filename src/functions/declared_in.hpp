@@ -4,13 +4,13 @@
 #include <vector>
 
 namespace clang {
-class FunctionDecl;
+class Decl;
 class SourceManager;
 } // namespace clang
 
 namespace astrein {
 
-[[nodiscard]] std::string declaredIn(const clang::FunctionDecl &Declaration,
+[[nodiscard]] std::string declaredIn(const clang::Decl &Declaration,
                                      const clang::SourceManager &Sources,
                                      const std::vector<std::string> &ApiRoots);
 

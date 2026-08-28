@@ -39,7 +39,7 @@ generator:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v1.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v2.schema.json",
   "functions": [
     {
       "declaredIn": "api.hpp",
@@ -50,34 +50,42 @@ generator:
       "name": "add",
       "parameters": [
         {
+          "alignment": 4,
           "doc": {
             "description": "First number.",
             "direction": "in"
           },
           "name": "left",
+          "size": 4,
           "type": "int"
         },
         {
+          "alignment": 4,
           "doc": {
             "description": "Second number.",
             "direction": "in"
           },
           "name": "right",
+          "size": 4,
           "type": "int"
         }
       ],
+      "returnAlignment": 4,
+      "returnSize": 4,
       "returnType": "int",
       "symbol": "add"
     }
   ],
   "publicHeader": "api.hpp",
   "schema": "astrein_ffi_api",
-  "schemaVersion": 1
+  "schemaVersion": 2,
+  "structs": []
 }
 ```
 
 ASTrein retains function names, parameter names and types, callback signatures,
-default arguments, and supported Doxygen documentation.
+struct definitions used by exported functions, default arguments, and
+supported Doxygen documentation.
 
 ## Get started
 
@@ -370,8 +378,131 @@ continuation character instead of `\`.
 ### Reduced FFI API
 
 Reduced output uses the
-[`astrein_ffi_api` JSON Schema](schema/astrein-ffi-api-v1.schema.json) and
+[`astrein_ffi_api` JSON Schema](schema/astrein-ffi-api-v2.schema.json) and
 identifies it through the top-level `$schema` property.
+
+The top-level `structs` array contains the named structs reachable from an
+exported function's return type or parameter types, including through pointers,
+references, arrays, callback signatures, and nested struct fields. Complete
+definitions contain their fields in declaration order. A struct for which only
+a forward declaration is public has `"opaque": true` and an empty `fields`
+array. For complete definitions, `size`, `alignment`, and each field's `offset`
+and `size` describe the ABI layout in target bytes. Bitfields additionally
+contain their absolute `bitOffset` and source-level `bitWidth`. These values
+reflect the target and ABI selected by the Clang arguments or compilation
+database. Structs and their transitive field dependencies follow the same
+`--api-root` and system-header filtering as functions.
+
+Function parameters likewise contain `size` and `alignment`. Non-`void`
+returns expose the same information as `returnSize` and `returnAlignment`.
+Functions themselves do not have an object size or offset; calling-convention
+register and stack placement is intentionally outside these layout fields.
+
+#### Layout fields
+
+All byte values refer to target bytes and therefore depend on the target triple
+and ABI used while parsing.
+
+| Field | Applies to | Unit | Meaning |
+| --- | --- | --- | --- |
+| `size` | Struct | Bytes | Total object size, including internal and trailing padding. This is the distance required between elements in an array of that struct. |
+| `alignment` | Struct | Bytes | Address boundary required by the struct type. For example, alignment `8` means its address must normally be divisible by eight. |
+| `offset` | Struct field | Bytes | Position of the field relative to the start of its containing struct. Padding is visible as gaps between offsets. |
+| `size` | Struct field | Bytes | Size of the field's type. For a nested struct this includes that nested struct's padding; for a pointer it is the target pointer size. |
+| `bitOffset` | Bitfield | Bits | Absolute start of a bitfield relative to the beginning of its containing struct. |
+| `bitWidth` | Bitfield | Source expression | Width written in the source, such as `3` or `FLAG_BITS`. For bitfields, byte `offset` identifies the containing byte and byte `size` describes the declared storage type. |
+| `size` | Function parameter | Bytes | Size of the declared parameter type after C/C++ parameter adjustment. A pointer parameter therefore reports the pointer size, not the pointee size. |
+| `alignment` | Function parameter | Bytes | Natural ABI alignment of the parameter type. This is useful when allocating temporary or marshalling storage, but it does not describe where the argument is passed. |
+| `returnSize` | Function return | Bytes | Size of a non-`void` return type. |
+| `returnAlignment` | Function return | Bytes | Natural ABI alignment of a non-`void` return type. |
+
+Function parameter order comes from the `parameters` array. Actual register or
+stack placement is controlled by the platform calling convention, so function
+parameters intentionally have no `offset`. Large by-value values may also be
+lowered to hidden pointers even though their JSON `size` still describes the
+source-level type.
+
+#### Struct example
+
+Given an exported function that receives a nested struct through a pointer:
+
+```cpp
+struct SerialLineConfig {
+  int data_bits;
+  int stop_bits;
+};
+
+struct SerialConfig {
+  const char *device;
+  SerialLineConfig line;
+};
+
+extern "C" int serialOpen(const SerialConfig *config);
+```
+
+On an x86-64 target, the relevant reduced output is:
+
+```json
+{
+  "functions": [
+    {
+      "name": "serialOpen",
+      "parameters": [
+        {
+          "alignment": 8,
+          "name": "config",
+          "size": 8,
+          "type": "const SerialConfig *"
+        }
+      ],
+      "returnAlignment": 4,
+      "returnSize": 4,
+      "returnType": "int",
+      "symbol": "serialOpen"
+    }
+  ],
+  "structs": [
+    {
+      "alignment": 8,
+      "fields": [
+        {
+          "name": "device",
+          "offset": 0,
+          "size": 8,
+          "type": "const char *"
+        },
+        {
+          "name": "line",
+          "offset": 8,
+          "size": 8,
+          "type": "SerialLineConfig"
+        }
+      ],
+      "name": "SerialConfig",
+      "size": 16
+    },
+    {
+      "alignment": 4,
+      "fields": [
+        {
+          "name": "data_bits",
+          "offset": 0,
+          "size": 4,
+          "type": "int"
+        },
+        {
+          "name": "stop_bits",
+          "offset": 4,
+          "size": 4,
+          "type": "int"
+        }
+      ],
+      "name": "SerialLineConfig",
+      "size": 8
+    }
+  ]
+}
+```
 
 Callback parameters are modeled like top-level function parameters. For an
 unnamed callback parameter, its object contains `type` and omits `name`.

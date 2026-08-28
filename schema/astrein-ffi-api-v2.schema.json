@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v2.schema.json",
+  "title": "ASTrein reduced FFI API",
+  "description": "Schema for the stable JSON representation emitted by ASTrein's reduced mode.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema",
+    "schemaVersion",
+    "publicHeader",
+    "functions",
+    "structs"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v2.schema.json"
+    },
+    "schema": {
+      "const": "astrein_ffi_api"
+    },
+    "schemaVersion": {
+      "const": 2
+    },
+    "publicHeader": {
+      "type": "string"
+    },
+    "functions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/function"
+      }
+    },
+    "structs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/struct"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "callback": {
+      "type": "object",
+      "required": [
+        "returnType",
+        "parameters"
+      ],
+      "properties": {
+        "returnType": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/callbackParameter"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "callbackParameter": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "function": {
+      "type": "object",
+      "required": [
+        "name",
+        "symbol",
+        "declaredIn",
+        "returnType",
+        "parameters"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "declaredIn": {
+          "type": "string"
+        },
+        "returnType": {
+          "type": "string"
+        },
+        "returnSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "returnAlignment": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/functionParameter"
+          }
+        },
+        "inline": {
+          "type": "boolean"
+        },
+        "doc": {
+          "$ref": "#/$defs/functionDocumentation"
+        }
+      },
+      "additionalProperties": false
+    },
+    "functionDocumentation": {
+      "type": "object",
+      "properties": {
+        "brief": {
+          "type": "string"
+        },
+        "returns": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "functionParameter": {
+      "type": "object",
+      "required": [
+        "name",
+        "type",
+        "size",
+        "alignment"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "alignment": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "default": {
+          "type": "string"
+        },
+        "callback": {
+          "$ref": "#/$defs/callback"
+        },
+        "doc": {
+          "$ref": "#/$defs/parameterDocumentation"
+        }
+      },
+      "additionalProperties": false
+    },
+    "parameterDocumentation": {
+      "type": "object",
+      "required": [
+        "direction"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "direction": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "struct": {
+      "type": "object",
+      "required": [
+        "name",
+        "declaredIn",
+        "fields"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "declaredIn": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "alignment": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "opaque": {
+          "const": true
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/structField"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "opaque"
+            ]
+          },
+          "else": {
+            "required": [
+              "size",
+              "alignment"
+            ]
+          }
+        }
+      ]
+    },
+    "structField": {
+      "type": "object",
+      "required": [
+        "name",
+        "type",
+        "offset",
+        "size"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bitOffset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bitWidth": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

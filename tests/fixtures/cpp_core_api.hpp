@@ -10,7 +10,34 @@
 
 using ErrorCallbackT = void (*)(int error_code, const char *message);
 
+struct SerialDefaultConfig {
+  int baud_rate;
+};
+
+struct SerialOpenConfig {
+  const char *device;
+};
+
+struct SerialLineConfig {
+  int data_bits;
+  int stop_bits;
+};
+
+struct SerialValidationConfig {
+  int baud_rate;
+  SerialLineConfig line;
+};
+
 extern "C" {
+
+/** Return the default serial port configuration. */
+MODULE_API SerialDefaultConfig serialDefaultConfig();
+
+/** Open a serial port using @p config. */
+MODULE_API int serialOpen(const SerialOpenConfig *config);
+
+/** Validate @p config passed by value. */
+MODULE_API int serialValidateConfig(SerialValidationConfig config);
 
 /**
  * @brief Write raw bytes to the serial port.

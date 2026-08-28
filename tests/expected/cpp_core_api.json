@@ -1,6 +1,40 @@
 {
-  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v1.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v2.schema.json",
   "functions": [
+    {
+      "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Return the default serial port configuration."
+      },
+      "name": "serialDefaultConfig",
+      "parameters": [],
+      "returnAlignment": 4,
+      "returnSize": 4,
+      "returnType": "SerialDefaultConfig",
+      "symbol": "serialDefaultConfig"
+    },
+    {
+      "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Open a serial port using config.",
+        "details": [
+          "Open a serial port using `config`."
+        ]
+      },
+      "name": "serialOpen",
+      "parameters": [
+        {
+          "alignment": 8,
+          "name": "config",
+          "size": 8,
+          "type": "const SerialOpenConfig *"
+        }
+      ],
+      "returnAlignment": 4,
+      "returnSize": 4,
+      "returnType": "int",
+      "symbol": "serialOpen"
+    },
     {
       "declaredIn": "cpp_core_api.hpp",
       "doc": {
@@ -9,6 +43,7 @@
       "name": "serialSetReadCallback",
       "parameters": [
         {
+          "alignment": 8,
           "callback": {
             "parameters": [
               {
@@ -23,11 +58,34 @@
             "direction": "in"
           },
           "name": "callback_fn",
+          "size": 8,
           "type": "void (*)(int)"
         }
       ],
       "returnType": "void",
       "symbol": "serialSetReadCallback"
+    },
+    {
+      "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Validate config passed by value.",
+        "details": [
+          "Validate `config` passed by value."
+        ]
+      },
+      "name": "serialValidateConfig",
+      "parameters": [
+        {
+          "alignment": 4,
+          "name": "config",
+          "size": 12,
+          "type": "SerialValidationConfig"
+        }
+      ],
+      "returnAlignment": 4,
+      "returnSize": 4,
+      "returnType": "int",
+      "symbol": "serialValidateConfig"
     },
     {
       "declaredIn": "cpp_core_api.hpp",
@@ -42,46 +100,57 @@
       "name": "serialWrite",
       "parameters": [
         {
+          "alignment": 4,
           "doc": {
             "description": "Port handle.",
             "direction": "in"
           },
           "name": "handle",
+          "size": 4,
           "type": "int"
         },
         {
+          "alignment": 8,
           "doc": {
             "description": "Data to transmit.",
             "direction": "in"
           },
           "name": "buffer",
+          "size": 8,
           "type": "const void *"
         },
         {
+          "alignment": 4,
           "doc": {
             "description": "Number of bytes in `buffer`.",
             "direction": "in"
           },
           "name": "buffer_size",
+          "size": 4,
           "type": "int"
         },
         {
+          "alignment": 4,
           "doc": {
             "description": "Base timeout in milliseconds.",
             "direction": "in"
           },
           "name": "timeout_ms",
+          "size": 4,
           "type": "int"
         },
         {
+          "alignment": 4,
           "doc": {
             "description": "Timeout multiplier.",
             "direction": "in"
           },
           "name": "multiplier",
+          "size": 4,
           "type": "int"
         },
         {
+          "alignment": 8,
           "callback": {
             "parameters": [
               {
@@ -101,14 +170,87 @@
             "direction": "in"
           },
           "name": "error_callback",
+          "size": 8,
           "type": "ErrorCallbackT"
         }
       ],
+      "returnAlignment": 4,
+      "returnSize": 4,
       "returnType": "int",
       "symbol": "serialWrite"
     }
   ],
   "publicHeader": "cpp_core/serial.h",
   "schema": "astrein_ffi_api",
-  "schemaVersion": 1
+  "schemaVersion": 2,
+  "structs": [
+    {
+      "alignment": 4,
+      "declaredIn": "cpp_core_api.hpp",
+      "fields": [
+        {
+          "name": "baud_rate",
+          "offset": 0,
+          "size": 4,
+          "type": "int"
+        }
+      ],
+      "name": "SerialDefaultConfig",
+      "size": 4
+    },
+    {
+      "alignment": 4,
+      "declaredIn": "cpp_core_api.hpp",
+      "fields": [
+        {
+          "name": "data_bits",
+          "offset": 0,
+          "size": 4,
+          "type": "int"
+        },
+        {
+          "name": "stop_bits",
+          "offset": 4,
+          "size": 4,
+          "type": "int"
+        }
+      ],
+      "name": "SerialLineConfig",
+      "size": 8
+    },
+    {
+      "alignment": 8,
+      "declaredIn": "cpp_core_api.hpp",
+      "fields": [
+        {
+          "name": "device",
+          "offset": 0,
+          "size": 8,
+          "type": "const char *"
+        }
+      ],
+      "name": "SerialOpenConfig",
+      "size": 8
+    },
+    {
+      "alignment": 4,
+      "declaredIn": "cpp_core_api.hpp",
+      "fields": [
+        {
+          "name": "baud_rate",
+          "offset": 0,
+          "size": 4,
+          "type": "int"
+        },
+        {
+          "name": "line",
+          "offset": 4,
+          "size": 8,
+          "type": "SerialLineConfig"
+        }
+      ],
+      "name": "SerialValidationConfig",
+      "size": 12
+    }
+  ]
 }

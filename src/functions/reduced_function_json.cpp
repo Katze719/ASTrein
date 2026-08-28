@@ -13,7 +13,25 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/Mangle.h"
 
+#include <cstdint>
+#include <optional>
+
 namespace astrein {
+namespace {
+
+void addTypeLayout(llvm::json::Object &Json, clang::QualType Type,
+                   clang::ASTContext &Context, llvm::StringRef SizeKey,
+                   llvm::StringRef AlignmentKey) {
+  const std::optional<clang::CharUnits> Size =
+      Context.getTypeSizeInCharsIfKnown(Type);
+  if (!Size.has_value())
+    return;
+  Json[SizeKey] = static_cast<int64_t>(Size->getQuantity());
+  Json[AlignmentKey] = static_cast<int64_t>(
+      Context.getTypeAlignInChars(Type).getQuantity());
+}
+
+} // namespace
 
 llvm::json::Object reducedFunctionJson(
     const clang::FunctionDecl &Declaration, clang::ASTContext &Context,
@@ -26,6 +44,8 @@ llvm::json::Object reducedFunctionJson(
   Function["declaredIn"] =
       declaredIn(Declaration, Context.getSourceManager(), ApiRoots);
   Function["returnType"] = printType(Declaration.getReturnType(), Policy);
+  addTypeLayout(Function, Declaration.getReturnType(), Context, "returnSize",
+                "returnAlignment");
 
   const FunctionDoc Docs = extractDocumentation(Declaration, Context);
   llvm::json::Array Parameters;
@@ -34,6 +54,8 @@ llvm::json::Object reducedFunctionJson(
     llvm::json::Object JsonParameter;
     JsonParameter["name"] = Parameter->getNameAsString();
     JsonParameter["type"] = printType(Parameter->getType(), Policy);
+    addTypeLayout(JsonParameter, Parameter->getType(), Context, "size",
+                  "alignment");
 
     if (Parameter->hasDefaultArg() && Parameter->getDefaultArg() != nullptr)
       JsonParameter["default"] =

@@ -7,7 +7,7 @@
 
 namespace astrein {
 
-std::string declaredIn(const clang::FunctionDecl &Declaration,
+std::string declaredIn(const clang::Decl &Declaration,
                        const clang::SourceManager &Sources,
                        const std::vector<std::string> &ApiRoots) {
   const clang::PresumedLoc Location =
