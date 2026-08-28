@@ -62,6 +62,10 @@ ArgumentParser::parse(int argc, const char *const *argv) const {
                                "' (expected 'full' or 'reduced')");
       continue;
     }
+    if (Argument == "--minify") {
+      Result.Minify = true;
+      continue;
+    }
 
     if (Argument == "-o" || Argument == "--output") {
       if (++Index >= argc)
@@ -183,6 +187,7 @@ Input and compiler configuration:
 Output:
       --ffi                  Emit the compact FFI API (same as --mode=reduced)
       --mode <mode>          Output mode: full (default) or reduced
+      --minify               Emit compact JSON without indentation
   -o, --output <path>        Write JSON to path; use '-' for stdout (default)
 
 Reduced-output selection:

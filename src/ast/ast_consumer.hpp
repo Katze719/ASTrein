@@ -27,7 +27,7 @@ struct RunState;
 
 class AstConsumer final : public clang::ASTConsumer {
 public:
-  AstConsumer(llvm::raw_ostream &Output, OutputMode Mode,
+  AstConsumer(llvm::raw_ostream &Output, OutputMode Mode, bool Minify,
               std::string PublicHeader, RunState &State,
               clang::CompilerInstance &Compiler,
               const std::vector<std::string> &ApiRoots, FfiFilter Filter);
@@ -45,6 +45,7 @@ private:
 
   llvm::raw_ostream &Output;
   OutputMode Mode;
+  bool Minify;
   std::string PublicHeader;
   RunState &State;
   clang::CompilerInstance &Compiler;

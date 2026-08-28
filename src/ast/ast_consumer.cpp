@@ -22,14 +22,26 @@
 #include <utility>
 
 namespace astrein {
+namespace {
+
+void writeJson(llvm::raw_ostream &Output, const llvm::json::Value &Value,
+               bool Minify) {
+  if (Minify)
+    Output << llvm::formatv("{0}", Value) << '\n';
+  else
+    Output << llvm::formatv("{0:2}", Value) << '\n';
+}
+
+} // namespace
 
 AstConsumer::AstConsumer(llvm::raw_ostream &Output, OutputMode Mode,
-                         std::string PublicHeader, RunState &State,
+                         bool Minify, std::string PublicHeader, RunState &State,
                          clang::CompilerInstance &Compiler,
                          const std::vector<std::string> &ApiRoots,
                          FfiFilter Filter)
-    : Output(Output), Mode(Mode), PublicHeader(std::move(PublicHeader)),
-      State(State), Compiler(Compiler), ApiRoots(ApiRoots), Filter(Filter) {}
+    : Output(Output), Mode(Mode), Minify(Minify),
+      PublicHeader(std::move(PublicHeader)), State(State), Compiler(Compiler),
+      ApiRoots(ApiRoots), Filter(Filter) {}
 
 void AstConsumer::HandleTranslationUnit(clang::ASTContext &Context) {
   clang::PrintingPolicy Policy(Context.getLangOpts());
@@ -68,7 +80,7 @@ void AstConsumer::writeFull(clang::ASTContext &Context,
 
   patchFullAst(*Parsed, Signatures.byJsonId(),
                Signatures.byDeclarationJsonId());
-  Output << llvm::formatv("{0:2}", *Parsed) << '\n';
+  writeJson(Output, *Parsed, Minify);
 }
 
 void AstConsumer::writeReduced(
@@ -95,7 +107,7 @@ void AstConsumer::writeReduced(
     JsonFunctions.emplace_back(reducedFunctionJson(
         *Function, Context, Signatures, NameGenerator, Policy, ApiRoots));
   Root["functions"] = std::move(JsonFunctions);
-  Output << llvm::formatv("{0:2}", llvm::json::Value(std::move(Root))) << '\n';
+  writeJson(Output, llvm::json::Value(std::move(Root)), Minify);
 }
 
 } // namespace astrein

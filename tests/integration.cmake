@@ -10,7 +10,8 @@ set(COMPDB_ANCHOR "${COMPDB_DIR}/callbacks_ast.cpp")
 get_filename_component(FIXTURE_DIR "${FIXTURE}" DIRECTORY)
 
 execute_process(
-  COMMAND "${ASTREIN}" --output "${FULL_JSON}" "${FIXTURE}" -- -std=c++2c -xc++
+  COMMAND "${ASTREIN}" --minify --output "${FULL_JSON}" "${FIXTURE}"
+          -- -std=c++2c -xc++
   RESULT_VARIABLE FULL_RESULT
   ERROR_VARIABLE FULL_ERROR)
 if(NOT FULL_RESULT EQUAL 0)
@@ -45,7 +46,7 @@ file(WRITE "${COMPDB_DIR}/compile_commands.json"
   "  }\n"
   "]\n")
 execute_process(
-  COMMAND "${ASTREIN}" --mode=reduced -p "${COMPDB_DIR}"
+  COMMAND "${ASTREIN}" --mode=reduced --minify -p "${COMPDB_DIR}"
           --output "${COMPDB_JSON}" "${FIXTURE}"
   RESULT_VARIABLE COMPDB_RESULT
   ERROR_VARIABLE COMPDB_ERROR)
@@ -78,6 +79,14 @@ file(READ "${REDUCED_JSON}" REDUCED_CONTENT)
 file(READ "${COMPDB_JSON}" COMPDB_CONTENT)
 file(READ "${COMPDB_ALIAS_JSON}" COMPDB_ALIAS_CONTENT)
 file(READ "${SCHEMA_FILE}" SCHEMA_CONTENT)
+
+foreach(MINIFIED_CONTENT FULL_CONTENT COMPDB_CONTENT)
+  string(REGEX REPLACE "\n$" "" COMPACT_CONTENT "${${MINIFIED_CONTENT}}")
+  string(FIND "${COMPACT_CONTENT}" "\n" EMBEDDED_NEWLINE)
+  if(NOT EMBEDDED_NEWLINE EQUAL -1)
+    message(FATAL_ERROR "--minify output contains embedded newlines")
+  endif()
+endforeach()
 
 string(JSON SCHEMA_DIALECT GET "${SCHEMA_CONTENT}" "$schema")
 string(JSON SCHEMA_ID GET "${SCHEMA_CONTENT}" "$id")

@@ -19,7 +19,7 @@ struct RunState;
 
 class AstFrontendAction final : public clang::ASTFrontendAction {
 public:
-  AstFrontendAction(llvm::raw_ostream &Output, OutputMode Mode,
+  AstFrontendAction(llvm::raw_ostream &Output, OutputMode Mode, bool Minify,
                     std::string PublicHeader, RunState &State,
                     const std::vector<std::string> &ApiRoots, FfiFilter Filter);
 
@@ -30,6 +30,7 @@ public:
 private:
   llvm::raw_ostream &Output;
   OutputMode Mode;
+  bool Minify;
   std::string PublicHeader;
   RunState &State;
   const std::vector<std::string> &ApiRoots;

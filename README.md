@@ -208,6 +208,7 @@ astrein [ASTrein options] <input-file> [-- <extra Clang arguments>]
 | `--api-root` | Limits reduced output to declarations below a directory |
 | `--public-header` | Overrides only the `publicHeader` text in the JSON |
 | `--output` | Selects the output file; the default is standard output |
+| `--minify` | Writes compact JSON without indentation |
 
 A header is a valid input file. Internally, Clang parses that input as one
 translation unit. You only need a separate `.cpp` input when its includes,
@@ -350,6 +351,7 @@ The most important options are:
 | --- | --- |
 | `--ffi` | Emit the compact FFI API |
 | `--mode full` | Emit the complete Clang JSON AST |
+| `--minify` | Emit compact JSON without indentation |
 | `-o, --output <path>` | Write JSON to a file; `-` means standard output |
 | `-p, --compile-commands <path>` | Load `compile_commands.json` |
 | `--api-root <directory>` | Select API declaration roots; repeatable |

@@ -13,6 +13,7 @@ foreach(EXPECTED
     "-V, --version"
     "--ffi"
     "--mode <mode>"
+    "--minify"
     "--require-c-linkage"
     "--require-default-visibility"
     "-p, --compile-commands <path>"

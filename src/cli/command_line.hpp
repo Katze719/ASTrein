@@ -13,6 +13,7 @@ namespace astrein {
 struct CommandLine {
   CommandLineAction Action = CommandLineAction::Run;
   OutputMode Mode = OutputMode::Full;
+  bool Minify = false;
   std::string OutputPath = "-";
   std::string PublicHeader;
   std::vector<std::string> ApiRoots;

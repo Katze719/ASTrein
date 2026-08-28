@@ -19,7 +19,7 @@ struct RunState;
 
 class AstActionFactory final : public clang::tooling::FrontendActionFactory {
 public:
-  AstActionFactory(llvm::raw_ostream &Output, OutputMode Mode,
+  AstActionFactory(llvm::raw_ostream &Output, OutputMode Mode, bool Minify,
                    std::string PublicHeader, RunState &State,
                    const std::vector<std::string> &ApiRoots, FfiFilter Filter);
 
@@ -28,6 +28,7 @@ public:
 private:
   llvm::raw_ostream &Output;
   OutputMode Mode;
+  bool Minify;
   std::string PublicHeader;
   RunState &State;
   const std::vector<std::string> &ApiRoots;
