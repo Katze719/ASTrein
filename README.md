@@ -393,10 +393,11 @@ reflect the target and ABI selected by the Clang arguments or compilation
 database. Structs and their transitive field dependencies follow the same
 `--api-root` and system-header filtering as functions.
 
-Function parameters likewise contain `size` and `alignment`. Non-`void`
-returns expose the same information as `returnSize` and `returnAlignment`.
-Functions themselves do not have an object size or offset; calling-convention
-register and stack placement is intentionally outside these layout fields.
+Function parameters and parameters of callback signatures likewise contain
+`size` and `alignment`. Non-`void` function returns expose the same information
+as `returnSize` and `returnAlignment`. Functions themselves do not have an
+object size or offset; calling-convention register and stack placement is
+intentionally outside these layout fields.
 
 #### Layout fields
 
@@ -411,8 +412,8 @@ and ABI used while parsing.
 | `size` | Struct field | Bytes | Size of the field's type. For a nested struct this includes that nested struct's padding; for a pointer it is the target pointer size. |
 | `bitOffset` | Bitfield | Bits | Absolute start of a bitfield relative to the beginning of its containing struct. |
 | `bitWidth` | Bitfield | Source expression | Width written in the source, such as `3` or `FLAG_BITS`. For bitfields, byte `offset` identifies the containing byte and byte `size` describes the declared storage type. |
-| `size` | Function parameter | Bytes | Size of the declared parameter type after C/C++ parameter adjustment. A pointer parameter therefore reports the pointer size, not the pointee size. |
-| `alignment` | Function parameter | Bytes | Natural ABI alignment of the parameter type. This is useful when allocating temporary or marshalling storage, but it does not describe where the argument is passed. |
+| `size` | Function or callback parameter | Bytes | Size of the declared parameter type after C/C++ parameter adjustment. A pointer parameter therefore reports the pointer size, not the pointee size. |
+| `alignment` | Function or callback parameter | Bytes | Natural ABI alignment of the parameter type. This is useful when allocating temporary or marshalling storage, but it does not describe where the argument is passed. |
 | `returnSize` | Function return | Bytes | Size of a non-`void` return type. |
 | `returnAlignment` | Function return | Bytes | Natural ABI alignment of a non-`void` return type. |
 

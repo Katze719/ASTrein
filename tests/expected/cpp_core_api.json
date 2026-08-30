@@ -47,7 +47,9 @@
           "callback": {
             "parameters": [
               {
+                "alignment": 4,
                 "name": "bytes_read",
+                "size": 4,
                 "type": "int"
               }
             ],
@@ -154,11 +156,15 @@
           "callback": {
             "parameters": [
               {
+                "alignment": 4,
                 "name": "error_code",
+                "size": 4,
                 "type": "int"
               },
               {
+                "alignment": 8,
                 "name": "message",
+                "size": 8,
                 "type": "const char *"
               }
             ],

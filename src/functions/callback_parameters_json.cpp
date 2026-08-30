@@ -7,21 +7,23 @@ namespace astrein {
 llvm::json::Array callbackParametersJson(const CallbackSignature &Signature,
                                          bool ClangTypeObjects) {
   llvm::json::Array Parameters;
-  Parameters.reserve(Signature.ParameterTypes.size());
-  for (std::size_t Index = 0; Index != Signature.ParameterTypes.size();
-       ++Index) {
-    llvm::json::Object Parameter;
-    if (Index < Signature.ParameterNames.size() &&
-        Signature.ParameterNames[Index].has_value())
-      Parameter["name"] = *Signature.ParameterNames[Index];
+  Parameters.reserve(Signature.Parameters.size());
+  for (const CallbackParameter &ParameterInfo : Signature.Parameters) {
+    llvm::json::Object JsonParameter;
+    if (ParameterInfo.Name.has_value())
+      JsonParameter["name"] = *ParameterInfo.Name;
     if (ClangTypeObjects) {
       llvm::json::Object Type;
-      Type["qualType"] = Signature.ParameterTypes[Index];
-      Parameter["type"] = std::move(Type);
+      Type["qualType"] = ParameterInfo.Type;
+      JsonParameter["type"] = std::move(Type);
     } else {
-      Parameter["type"] = Signature.ParameterTypes[Index];
+      JsonParameter["type"] = ParameterInfo.Type;
+      if (ParameterInfo.Size.has_value())
+        JsonParameter["size"] = *ParameterInfo.Size;
+      if (ParameterInfo.Alignment.has_value())
+        JsonParameter["alignment"] = *ParameterInfo.Alignment;
     }
-    Parameters.emplace_back(std::move(Parameter));
+    Parameters.emplace_back(std::move(JsonParameter));
   }
   return Parameters;
 }

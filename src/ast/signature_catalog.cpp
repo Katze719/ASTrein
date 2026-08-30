@@ -109,17 +109,26 @@ SignatureCatalog::collectTypeSourceInfo(clang::TypeSourceInfo *Info) {
     const auto *Function = FunctionLocation.getTypePtr();
     CallbackSignature Signature;
     Signature.ReturnType = printType(Function->getReturnType(), Policy);
-    Signature.ParameterTypes.reserve(Function->getNumParams());
-    Signature.ParameterNames.reserve(Function->getNumParams());
+    Signature.Parameters.reserve(Function->getNumParams());
 
     for (unsigned Index = 0; Index != Function->getNumParams(); ++Index) {
-      Signature.ParameterTypes.push_back(
-          printType(Function->getParamType(Index), Policy));
-      const clang::ParmVarDecl *Parameter = FunctionLocation.getParam(Index);
-      if (Parameter != nullptr && !Parameter->getName().empty())
-        Signature.ParameterNames.emplace_back(Parameter->getNameAsString());
-      else
-        Signature.ParameterNames.emplace_back(std::nullopt);
+      const clang::QualType ParameterType = Function->getParamType(Index);
+      CallbackParameter ParameterInfo;
+      ParameterInfo.Type = printType(ParameterType, Policy);
+
+      if (const clang::ParmVarDecl *Parameter =
+              FunctionLocation.getParam(Index);
+          Parameter != nullptr && !Parameter->getName().empty())
+        ParameterInfo.Name = Parameter->getNameAsString();
+
+      if (const std::optional<clang::CharUnits> Size =
+              Context.getTypeSizeInCharsIfKnown(ParameterType)) {
+        ParameterInfo.Size = static_cast<int64_t>(Size->getQuantity());
+        ParameterInfo.Alignment = static_cast<int64_t>(
+            Context.getTypeAlignInChars(ParameterType).getQuantity());
+      }
+
+      Signature.Parameters.emplace_back(std::move(ParameterInfo));
     }
 
     Found = Signature;

@@ -179,22 +179,40 @@ string(JSON ALIAS_CALLBACK_NAME GET "${REDUCED_CONTENT}"
        functions 0 parameters 0 callback parameters 0 name)
 string(JSON ALIAS_CALLBACK_TYPE GET "${REDUCED_CONTENT}"
        functions 0 parameters 0 callback parameters 0 type)
+string(JSON ALIAS_CALLBACK_SIZE GET "${REDUCED_CONTENT}"
+       functions 0 parameters 0 callback parameters 0 size)
+string(JSON ALIAS_CALLBACK_ALIGNMENT GET "${REDUCED_CONTENT}"
+       functions 0 parameters 0 callback parameters 0 alignment)
 string(JSON DIRECT_CALLBACK_NAME GET "${REDUCED_CONTENT}"
        functions 1 parameters 0 callback parameters 0 name)
 string(JSON DIRECT_CALLBACK_TYPE GET "${REDUCED_CONTENT}"
        functions 1 parameters 0 callback parameters 1 type)
+string(JSON DIRECT_CALLBACK_SIZE GET "${REDUCED_CONTENT}"
+       functions 1 parameters 0 callback parameters 1 size)
+string(JSON DIRECT_CALLBACK_ALIGNMENT GET "${REDUCED_CONTENT}"
+       functions 1 parameters 0 callback parameters 1 alignment)
 string(JSON PARTIAL_CALLBACK_SECOND_NAME GET "${REDUCED_CONTENT}"
        functions 3 parameters 0 callback parameters 1 name)
 string(JSON LEGACY_CALLBACK_FIRST_NAME GET "${REDUCED_CONTENT}"
        functions 2 parameters 0 callback parameters 0 name)
+string(JSON LEGACY_CALLBACK_FIRST_SIZE GET "${REDUCED_CONTENT}"
+       functions 2 parameters 0 callback parameters 0 size)
+string(JSON LEGACY_CALLBACK_FIRST_ALIGNMENT GET "${REDUCED_CONTENT}"
+       functions 2 parameters 0 callback parameters 0 alignment)
 string(JSON LEGACY_CALLBACK_SECOND_TYPE GET "${REDUCED_CONTENT}"
        functions 2 parameters 0 callback parameters 1 type)
 if(NOT ALIAS_CALLBACK_NAME STREQUAL "error_code" OR
    NOT ALIAS_CALLBACK_TYPE STREQUAL "int" OR
+   NOT ALIAS_CALLBACK_SIZE EQUAL 4 OR
+   NOT ALIAS_CALLBACK_ALIGNMENT EQUAL 4 OR
    NOT DIRECT_CALLBACK_NAME STREQUAL "status" OR
    NOT DIRECT_CALLBACK_TYPE STREQUAL "const char *" OR
+   NOT DIRECT_CALLBACK_SIZE EQUAL 8 OR
+   NOT DIRECT_CALLBACK_ALIGNMENT EQUAL 8 OR
    NOT PARTIAL_CALLBACK_SECOND_NAME STREQUAL "message" OR
    NOT LEGACY_CALLBACK_FIRST_NAME STREQUAL "event_id" OR
+   NOT LEGACY_CALLBACK_FIRST_SIZE EQUAL 8 OR
+   NOT LEGACY_CALLBACK_FIRST_ALIGNMENT EQUAL 8 OR
    NOT LEGACY_CALLBACK_SECOND_TYPE STREQUAL "void *")
   message(FATAL_ERROR "callback parameter objects have unexpected values")
 endif()

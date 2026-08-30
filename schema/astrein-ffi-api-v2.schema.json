@@ -70,6 +70,14 @@
         },
         "type": {
           "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "alignment": {
+          "type": "integer",
+          "minimum": 1
         }
       },
       "additionalProperties": false

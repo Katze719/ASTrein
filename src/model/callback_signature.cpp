@@ -6,8 +6,9 @@
 namespace astrein {
 
 std::size_t CallbackSignature::namedParameterCount() const {
-  return std::ranges::count_if(
-      ParameterNames, [](const auto &Name) { return Name.has_value(); });
+  return std::ranges::count_if(Parameters, [](const auto &Parameter) {
+    return Parameter.Name.has_value();
+  });
 }
 
 } // namespace astrein
