@@ -1,6 +1,12 @@
 #pragma once
 
-using ErrorCallback = void (*)(int error_code, const char *message);
+/** Error reported by a callback. */
+enum class ErrorCode : int {
+  kNone = 0,   ///< No error.
+  kFailed = 1, ///< The operation failed.
+};
+
+using ErrorCallback = void (*)(ErrorCode error_code, const char *message);
 
 /// @brief Invoke a named callback.
 /// @param[in] callback Callback to invoke.
