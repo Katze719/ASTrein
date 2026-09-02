@@ -107,6 +107,8 @@ foreach(DEFINITION IN ITEMS
     functionParameter
     parameterDocumentation
     declarationDocumentation
+    enum
+    enumValue
     struct
     structField)
   string(JSON DEFINITION_EXTENSIBLE GET
@@ -121,10 +123,20 @@ string(JSON STRUCT_DOC_SCHEMA GET
        "${SCHEMA_CONTENT}" "$defs" struct properties doc "$ref")
 string(JSON STRUCT_FIELD_DOC_SCHEMA GET
        "${SCHEMA_CONTENT}" "$defs" structField properties doc "$ref")
-if(NOT STRUCT_DOC_SCHEMA STREQUAL "#/$defs/declarationDocumentation" OR
+string(JSON ENUM_DOC_SCHEMA GET
+       "${SCHEMA_CONTENT}" "$defs" enum properties doc "$ref")
+string(JSON ENUM_VALUE_DOC_SCHEMA GET
+       "${SCHEMA_CONTENT}" "$defs" enumValue properties doc "$ref")
+string(JSON ENUM_ITEMS_SCHEMA GET
+       "${SCHEMA_CONTENT}" properties enums items "$ref")
+if(NOT ENUM_ITEMS_SCHEMA STREQUAL "#/$defs/enum" OR
+   NOT STRUCT_DOC_SCHEMA STREQUAL "#/$defs/declarationDocumentation" OR
    NOT STRUCT_FIELD_DOC_SCHEMA STREQUAL
+       "#/$defs/declarationDocumentation" OR
+   NOT ENUM_DOC_SCHEMA STREQUAL "#/$defs/declarationDocumentation" OR
+   NOT ENUM_VALUE_DOC_SCHEMA STREQUAL
        "#/$defs/declarationDocumentation")
-  message(FATAL_ERROR "schema does not describe struct documentation")
+  message(FATAL_ERROR "schema does not describe declaration documentation")
 endif()
 
 foreach(EXPECTED
@@ -187,11 +199,13 @@ string(JSON SCHEMA GET "${REDUCED_CONTENT}" schema)
 string(JSON SCHEMA_VERSION GET "${REDUCED_CONTENT}" schemaVersion)
 string(JSON FUNCTION_COUNT LENGTH "${REDUCED_CONTENT}" functions)
 string(JSON STRUCT_COUNT LENGTH "${REDUCED_CONTENT}" structs)
+string(JSON ENUM_COUNT LENGTH "${REDUCED_CONTENT}" enums)
 if(NOT SCHEMA_REFERENCE STREQUAL "${SCHEMA_URI}" OR
    NOT SCHEMA STREQUAL "astrein_ffi_api" OR
    NOT SCHEMA_VERSION EQUAL 3 OR
    NOT FUNCTION_COUNT EQUAL 4 OR
-   NOT STRUCT_COUNT EQUAL 0)
+   NOT STRUCT_COUNT EQUAL 0 OR
+   NOT ENUM_COUNT EQUAL 0)
   message(FATAL_ERROR "unexpected reduced schema header or function count")
 endif()
 

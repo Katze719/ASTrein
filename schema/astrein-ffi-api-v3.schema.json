@@ -10,6 +10,7 @@
     "schema",
     "schemaVersion",
     "publicHeader",
+    "enums",
     "functions",
     "structs"
   ],
@@ -25,6 +26,12 @@
     },
     "publicHeader": {
       "type": "string"
+    },
+    "enums": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/enum"
+      }
     },
     "functions": {
       "type": "array",
@@ -212,6 +219,95 @@
       },
       "additionalProperties": true,
       "minProperties": 1
+    },
+    "enum": {
+      "type": "object",
+      "required": [
+        "name",
+        "declaredIn",
+        "scoped",
+        "values"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "declaredIn": {
+          "type": "string"
+        },
+        "underlyingType": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "alignment": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "scoped": {
+          "type": "boolean"
+        },
+        "opaque": {
+          "const": true
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/enumValue"
+          }
+        },
+        "doc": {
+          "$ref": "#/$defs/declarationDocumentation"
+        }
+      },
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "opaque"
+            ]
+          },
+          "else": {
+            "required": [
+              "underlyingType",
+              "size",
+              "alignment"
+            ]
+          }
+        }
+      ]
+    },
+    "enumValue": {
+      "type": "object",
+      "required": [
+        "name",
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^-?[0-9]+$"
+        },
+        "doc": {
+          "$ref": "#/$defs/declarationDocumentation"
+        }
+      },
+      "additionalProperties": true
     },
     "struct": {
       "type": "object",

@@ -10,6 +10,26 @@
 
 using ErrorCallbackT = void (*)(int error_code, const char *message);
 
+/** Parity mode. */
+enum class Parity : int {
+  kNone = 0, ///< Disable parity.
+  kEven = 1, ///< Use even parity.
+  kOdd = 2,  ///< Use odd parity.
+};
+
+/** Stop-bit mode. */
+enum class StopBits : int {
+  kOne = 0, ///< Use one stop bit.
+  kTwo = 2, ///< Use two stop bits.
+};
+
+/** Flow-control mode. */
+enum class FlowControl : int {
+  kNone = 0,    ///< Disable flow control.
+  kRtsCts = 1,  ///< Use hardware RTS/CTS flow control.
+  kXonXoff = 2, ///< Use software XON/XOFF flow control.
+};
+
 /** Default serial-port configuration. */
 struct SerialDefaultConfig {
   int baud_rate = 115200; ///< Baud rate in bits per second.
@@ -29,6 +49,9 @@ struct SerialLineConfig {
 struct SerialValidationConfig {
   int baud_rate;         ///< Baud rate to validate.
   SerialLineConfig line; ///< Line configuration to validate.
+  Parity parity;         ///< Parity mode.
+  StopBits stop_bits;    ///< Stop-bit mode.
+  FlowControl flow_mode; ///< Flow-control mode.
 };
 
 extern "C" {

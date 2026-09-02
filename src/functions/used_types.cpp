@@ -1,4 +1,4 @@
-#include "functions/used_structs.hpp"
+#include "functions/used_types.hpp"
 
 #include "functions/path_is_below.hpp"
 
@@ -17,37 +17,56 @@
 namespace astrein {
 namespace {
 
-class UsedStructCollector {
+class UsedTypeCollector {
 public:
-  UsedStructCollector(clang::ASTContext &Context,
-                      const std::vector<std::string> &ApiRoots)
+  UsedTypeCollector(clang::ASTContext &Context,
+                    const std::vector<std::string> &ApiRoots)
       : Context(Context), Sources(Context.getSourceManager()),
         ApiRoots(ApiRoots) {}
 
-  std::vector<StructDefinition> collect(
-      const std::vector<const clang::FunctionDecl *> &Functions) {
+  UsedTypes collect(const std::vector<const clang::FunctionDecl *> &Functions) {
     for (const clang::FunctionDecl *Function : Functions) {
       collectType(Function->getReturnType());
       for (const clang::ParmVarDecl *Parameter : Function->parameters())
         collectType(Parameter->getType());
     }
 
-    std::vector<StructDefinition> Result;
-    Result.reserve(Records.size());
+    UsedTypes Result;
+    Result.Structs.reserve(Records.size());
     for (const auto &[Canonical, Declaration] : Records) {
       StructDefinition Definition;
       Definition.Declaration = Declaration;
-      Definition.Name = structName(*Canonical);
-      if (const auto Found = Aliases.find(Canonical); Found != Aliases.end()) {
+      Definition.Name = tagName(*Canonical);
+      if (const auto Found = RecordAliases.find(Canonical);
+          Found != RecordAliases.end()) {
         Definition.Aliases.assign(Found->second.begin(), Found->second.end());
         std::ranges::sort(Definition.Aliases);
         std::erase(Definition.Aliases, Definition.Name);
       }
-      Result.push_back(std::move(Definition));
+      Result.Structs.push_back(std::move(Definition));
     }
 
-    std::ranges::stable_sort(Result, [](const StructDefinition &Left,
-                                        const StructDefinition &Right) {
+    std::ranges::stable_sort(Result.Structs, [](const StructDefinition &Left,
+                                                const StructDefinition &Right) {
+      return Left.Name < Right.Name;
+    });
+
+    Result.Enums.reserve(Enums.size());
+    for (const auto &[Canonical, Declaration] : Enums) {
+      EnumDefinition Definition;
+      Definition.Declaration = Declaration;
+      Definition.Name = tagName(*Canonical);
+      if (const auto Found = EnumAliases.find(Canonical);
+          Found != EnumAliases.end()) {
+        Definition.Aliases.assign(Found->second.begin(), Found->second.end());
+        std::ranges::sort(Definition.Aliases);
+        std::erase(Definition.Aliases, Definition.Name);
+      }
+      Result.Enums.push_back(std::move(Definition));
+    }
+
+    std::ranges::stable_sort(Result.Enums, [](const EnumDefinition &Left,
+                                              const EnumDefinition &Right) {
       return Left.Name < Right.Name;
     });
     return Result;
@@ -71,8 +90,7 @@ private:
     });
   }
 
-  [[nodiscard]] static std::string
-  structName(const clang::RecordDecl &Declaration) {
+  [[nodiscard]] static std::string tagName(const clang::TagDecl &Declaration) {
     if (!Declaration.getName().empty())
       return Declaration.getQualifiedNameAsString();
     if (const clang::TypedefNameDecl *Typedef =
@@ -89,15 +107,20 @@ private:
 
     const clang::QualType Underlying =
         Typedef->getDecl()->getUnderlyingType().getCanonicalType();
-    const auto *RecordType = Underlying->getAs<clang::RecordType>();
-    if (RecordType == nullptr || !RecordType->getDecl()->isStruct())
+    const std::string Alias = Typedef->getDecl()->getQualifiedNameAsString();
+    if (const auto *RecordType = Underlying->getAs<clang::RecordType>();
+        RecordType != nullptr && RecordType->getDecl()->isStruct()) {
+      const auto *Canonical = llvm::cast<clang::RecordDecl>(
+          RecordType->getDecl()->getCanonicalDecl());
+      RecordAliases[Canonical].insert(Alias);
       return;
+    }
 
-    const clang::RecordDecl *Canonical =
-        llvm::cast<clang::RecordDecl>(
-            RecordType->getDecl()->getCanonicalDecl());
-    Aliases[Canonical].insert(
-        Typedef->getDecl()->getQualifiedNameAsString());
+    if (const auto *EnumType = Underlying->getAs<clang::EnumType>()) {
+      const auto *Canonical =
+          llvm::cast<clang::EnumDecl>(EnumType->getDecl()->getCanonicalDecl());
+      EnumAliases[Canonical].insert(Alias);
+    }
   }
 
   void collectRecord(const clang::RecordDecl &Record) {
@@ -124,7 +147,7 @@ private:
       }
     }
 
-    if (Selected == nullptr || structName(*Canonical).empty()) {
+    if (Selected == nullptr || tagName(*Canonical).empty()) {
       RejectedRecords.insert(Canonical);
       return;
     }
@@ -134,6 +157,35 @@ private:
       return;
     for (const clang::FieldDecl *Field : Selected->fields())
       collectType(Field->getType());
+  }
+
+  void collectEnum(const clang::EnumDecl &Enum) {
+    const auto *Canonical =
+        llvm::cast<clang::EnumDecl>(Enum.getCanonicalDecl());
+    if (Enums.contains(Canonical) || RejectedEnums.contains(Canonical))
+      return;
+
+    const clang::EnumDecl *Selected = nullptr;
+    if (const clang::EnumDecl *Definition = Canonical->getDefinition();
+        Definition != nullptr && isApiDeclaration(*Definition))
+      Selected = Definition;
+    if (Selected == nullptr) {
+      for (const clang::TagDecl *TagRedeclaration : Canonical->redecls()) {
+        const auto *Redeclaration =
+            llvm::cast<clang::EnumDecl>(TagRedeclaration);
+        if (isApiDeclaration(*Redeclaration)) {
+          Selected = Redeclaration;
+          break;
+        }
+      }
+    }
+
+    if (Selected == nullptr || tagName(*Canonical).empty()) {
+      RejectedEnums.insert(Canonical);
+      return;
+    }
+
+    Enums.emplace(Canonical, Selected);
   }
 
   void collectType(clang::QualType Type) {
@@ -190,9 +242,10 @@ private:
     }
     if (const auto *RecordType = llvm::dyn_cast<clang::RecordType>(Raw))
       collectRecord(*RecordType->getDecl());
+    if (const auto *EnumType = llvm::dyn_cast<clang::EnumType>(Raw))
+      collectEnum(*EnumType->getDecl());
 
-    const clang::QualType Desugared =
-        Type.getSingleStepDesugaredType(Context);
+    const clang::QualType Desugared = Type.getSingleStepDesugaredType(Context);
     if (Desugared != Type)
       collectType(Desugared);
   }
@@ -202,18 +255,21 @@ private:
   const std::vector<std::string> &ApiRoots;
   std::unordered_map<const clang::RecordDecl *, const clang::RecordDecl *>
       Records;
-  std::unordered_map<const clang::RecordDecl *,
-                     std::unordered_set<std::string>>
-      Aliases;
+  std::unordered_map<const clang::RecordDecl *, std::unordered_set<std::string>>
+      RecordAliases;
+  std::unordered_map<const clang::EnumDecl *, const clang::EnumDecl *> Enums;
+  std::unordered_map<const clang::EnumDecl *, std::unordered_set<std::string>>
+      EnumAliases;
   std::unordered_set<const clang::RecordDecl *> RejectedRecords;
+  std::unordered_set<const clang::EnumDecl *> RejectedEnums;
 };
 
 } // namespace
 
-std::vector<StructDefinition> usedStructs(
-    const std::vector<const clang::FunctionDecl *> &Functions,
-    clang::ASTContext &Context, const std::vector<std::string> &ApiRoots) {
-  return UsedStructCollector(Context, ApiRoots).collect(Functions);
+UsedTypes usedTypes(const std::vector<const clang::FunctionDecl *> &Functions,
+                    clang::ASTContext &Context,
+                    const std::vector<std::string> &ApiRoots) {
+  return UsedTypeCollector(Context, ApiRoots).collect(Functions);
 }
 
 } // namespace astrein

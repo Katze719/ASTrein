@@ -40,6 +40,7 @@ generator:
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v3.schema.json",
+  "enums": [],
   "functions": [
     {
       "declaredIn": "api.hpp",
@@ -84,7 +85,7 @@ generator:
 ```
 
 ASTrein retains function names, parameter names and types, callback signatures,
-struct definitions used by exported functions, default arguments, and
+struct and enum definitions used by exported functions, default arguments, and
 supported Doxygen documentation.
 
 ## Get started
@@ -401,6 +402,15 @@ reflect the target and ABI selected by the Clang arguments or compilation
 database. Structs and their transitive field dependencies follow the same
 `--api-root` and system-header filtering as functions.
 
+The top-level `enums` array contains enum definitions reachable through the
+same function signatures, callback signatures, and nested struct fields. Each
+definition reports whether it is scoped, its underlying integer type and ABI
+layout, and its enumerators in declaration order. Evaluated enumerator values
+are decimal strings so unsigned 64-bit values remain exact. Enum and enumerator
+documentation is emitted through the same `doc` representation used for
+structs and fields. A publicly reachable enum whose definition is not public
+is emitted with `"opaque": true` and an empty `values` array.
+
 Function parameters and parameters of callback signatures likewise contain
 `size` and `alignment`. Non-`void` function returns expose the same information
 as `returnSize` and `returnAlignment`. Functions themselves do not have an
@@ -416,6 +426,8 @@ and ABI used while parsing.
 | --- | --- | --- | --- |
 | `size` | Struct | Bytes | Total object size, including internal and trailing padding. This is the distance required between elements in an array of that struct. |
 | `alignment` | Struct | Bytes | Address boundary required by the struct type. For example, alignment `8` means its address must normally be divisible by eight. |
+| `size` | Enum | Bytes | Size of an enum object under the selected target ABI. |
+| `alignment` | Enum | Bytes | Required alignment of the enum type under the selected target ABI. |
 | `offset` | Struct field | Bytes | Position of the field relative to the start of its containing struct. Padding is visible as gaps between offsets. |
 | `size` | Struct field | Bytes | Size of the field's type. For a nested struct this includes that nested struct's padding; for a pointer it is the target pointer size. |
 | `bitOffset` | Bitfield | Bits | Absolute start of a bitfield relative to the beginning of its containing struct. |
@@ -514,6 +526,57 @@ On an x86-64 target, the relevant reduced output is:
       ],
       "name": "SerialLineConfig",
       "size": 8
+    }
+  ]
+}
+```
+
+#### Enum example
+
+Given a scoped enum used by a struct field:
+
+```cpp
+enum class Parity : int {
+  kNone = 0, ///< Disable parity.
+  kEven = 1, ///< Use even parity.
+  kOdd = 2,  ///< Use odd parity.
+};
+
+struct SerialConfig {
+  Parity parity; ///< Parity mode.
+};
+
+extern "C" int serialOpen(const SerialConfig *config);
+```
+
+The relevant enum output is:
+
+```json
+{
+  "enums": [
+    {
+      "alignment": 4,
+      "name": "Parity",
+      "scoped": true,
+      "size": 4,
+      "underlyingType": "int",
+      "values": [
+        {
+          "doc": { "brief": "Disable parity." },
+          "name": "kNone",
+          "value": "0"
+        },
+        {
+          "doc": { "brief": "Use even parity." },
+          "name": "kEven",
+          "value": "1"
+        },
+        {
+          "doc": { "brief": "Use odd parity." },
+          "name": "kOdd",
+          "value": "2"
+        }
+      ]
     }
   ]
 }

@@ -3,9 +3,10 @@
 #include "ast/ast_visitor.hpp"
 #include "ast/signature_catalog.hpp"
 #include "functions/patch_full_ast.hpp"
+#include "functions/reduced_enum_json.hpp"
 #include "functions/reduced_function_json.hpp"
 #include "functions/reduced_struct_json.hpp"
-#include "functions/used_structs.hpp"
+#include "functions/used_types.hpp"
 #include "model/run_state.hpp"
 
 #include "clang/AST/ASTContext.h"
@@ -102,6 +103,15 @@ void AstConsumer::writeReduced(
   Root["schemaVersion"] = 3;
   Root["publicHeader"] = PublicHeader;
 
+  const UsedTypes Types = usedTypes(Functions, Context, ApiRoots);
+
+  llvm::json::Array JsonEnums;
+  JsonEnums.reserve(Types.Enums.size());
+  for (const EnumDefinition &Definition : Types.Enums)
+    JsonEnums.emplace_back(
+        reducedEnumJson(Definition, Context, Policy, ApiRoots));
+  Root["enums"] = std::move(JsonEnums);
+
   clang::ASTNameGenerator NameGenerator(Context);
   llvm::json::Array JsonFunctions;
   JsonFunctions.reserve(Functions.size());
@@ -110,11 +120,9 @@ void AstConsumer::writeReduced(
         *Function, Context, Signatures, NameGenerator, Policy, ApiRoots));
   Root["functions"] = std::move(JsonFunctions);
 
-  const std::vector<StructDefinition> Structs =
-      usedStructs(Functions, Context, ApiRoots);
   llvm::json::Array JsonStructs;
-  JsonStructs.reserve(Structs.size());
-  for (const StructDefinition &Definition : Structs)
+  JsonStructs.reserve(Types.Structs.size());
+  for (const StructDefinition &Definition : Types.Structs)
     JsonStructs.emplace_back(
         reducedStructJson(Definition, Context, Policy, ApiRoots));
   Root["structs"] = std::move(JsonStructs);

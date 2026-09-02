@@ -1,5 +1,102 @@
 {
   "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v3.schema.json",
+  "enums": [
+    {
+      "alignment": 4,
+      "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Flow-control mode."
+      },
+      "name": "FlowControl",
+      "scoped": true,
+      "size": 4,
+      "underlyingType": "int",
+      "values": [
+        {
+          "doc": {
+            "brief": "Disable flow control."
+          },
+          "name": "kNone",
+          "value": "0"
+        },
+        {
+          "doc": {
+            "brief": "Use hardware RTS/CTS flow control."
+          },
+          "name": "kRtsCts",
+          "value": "1"
+        },
+        {
+          "doc": {
+            "brief": "Use software XON/XOFF flow control."
+          },
+          "name": "kXonXoff",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "alignment": 4,
+      "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Parity mode."
+      },
+      "name": "Parity",
+      "scoped": true,
+      "size": 4,
+      "underlyingType": "int",
+      "values": [
+        {
+          "doc": {
+            "brief": "Disable parity."
+          },
+          "name": "kNone",
+          "value": "0"
+        },
+        {
+          "doc": {
+            "brief": "Use even parity."
+          },
+          "name": "kEven",
+          "value": "1"
+        },
+        {
+          "doc": {
+            "brief": "Use odd parity."
+          },
+          "name": "kOdd",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "alignment": 4,
+      "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Stop-bit mode."
+      },
+      "name": "StopBits",
+      "scoped": true,
+      "size": 4,
+      "underlyingType": "int",
+      "values": [
+        {
+          "doc": {
+            "brief": "Use one stop bit."
+          },
+          "name": "kOne",
+          "value": "0"
+        },
+        {
+          "doc": {
+            "brief": "Use two stop bits."
+          },
+          "name": "kTwo",
+          "value": "2"
+        }
+      ]
+    }
+  ],
   "functions": [
     {
       "declaredIn": "cpp_core_api.hpp",
@@ -80,7 +177,7 @@
         {
           "alignment": 4,
           "name": "config",
-          "size": 12,
+          "size": 24,
           "type": "SerialValidationConfig"
         }
       ],
@@ -277,10 +374,37 @@
           "offset": 4,
           "size": 8,
           "type": "SerialLineConfig"
+        },
+        {
+          "doc": {
+            "brief": "Parity mode."
+          },
+          "name": "parity",
+          "offset": 12,
+          "size": 4,
+          "type": "Parity"
+        },
+        {
+          "doc": {
+            "brief": "Stop-bit mode."
+          },
+          "name": "stop_bits",
+          "offset": 16,
+          "size": 4,
+          "type": "StopBits"
+        },
+        {
+          "doc": {
+            "brief": "Flow-control mode."
+          },
+          "name": "flow_mode",
+          "offset": 20,
+          "size": 4,
+          "type": "FlowControl"
         }
       ],
       "name": "SerialValidationConfig",
-      "size": 12
+      "size": 24
     }
   ]
 }

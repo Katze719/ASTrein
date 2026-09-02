@@ -83,10 +83,11 @@ add_executable(astrein
   src/functions/path_is_below.cpp
   src/functions/pointer_id.cpp
   src/functions/print_type.cpp
+  src/functions/reduced_enum_json.cpp
   src/functions/reduced_function_json.cpp
   src/functions/reduced_struct_json.cpp
   src/functions/strip_gcc_module_arguments.cpp
-  src/functions/used_structs.cpp
+  src/functions/used_types.cpp
   src/model/callback_signature.cpp)
 
 target_compile_features(astrein PRIVATE cxx_std_26)
