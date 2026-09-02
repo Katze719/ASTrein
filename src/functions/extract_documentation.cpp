@@ -1,6 +1,7 @@
 #include "functions/extract_documentation.hpp"
 
 #include "functions/append_words.hpp"
+#include "model/declaration_doc.hpp"
 
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Comment.h"
@@ -162,11 +163,77 @@ std::string verbatimText(const clang::comments::VerbatimBlockComment &Block,
   return Result;
 }
 
+void appendCommonDocumentation(const clang::comments::Comment &Comment,
+                               const clang::comments::CommandTraits &Traits,
+                               DeclarationDoc &Result) {
+  if (const auto *Verbatim =
+          llvm::dyn_cast<clang::comments::VerbatimBlockComment>(&Comment)) {
+    Result.Details.push_back(verbatimText(*Verbatim, Traits));
+    return;
+  }
+
+  if (const auto *Command =
+          llvm::dyn_cast<clang::comments::BlockCommandComment>(&Comment)) {
+    const llvm::StringRef Name = Command->getCommandName(Traits);
+    const std::string Text = commentText(*Command);
+    if (Text.empty())
+      return;
+    if (Name == "brief")
+      Result.Brief = appendWords(std::move(Result.Brief), Text);
+    else if (Name == "details" || Name == "note" || Name == "remark" ||
+             Name == "remarks")
+      Result.Details.push_back(Text);
+    return;
+  }
+
+  if (llvm::isa<clang::comments::ParagraphComment>(&Comment)) {
+    const std::string Text = commentText(Comment);
+    if (!Text.empty())
+      Result.Details.push_back(Text);
+  }
+}
+
+void addRawBrief(const clang::Decl &Declaration, clang::ASTContext &Context,
+                 DeclarationDoc &Result) {
+  if (Result.Brief.empty()) {
+    if (const clang::RawComment *Raw =
+            Context.getRawCommentForAnyRedecl(&Declaration))
+      Result.Brief = normalizeText(Raw->getBriefText(Context));
+  }
+
+  std::erase(Result.Details, Result.Brief);
+}
+
 } // namespace
+
+DeclarationDoc extractDocumentation(const clang::Decl &Declaration,
+                                    clang::ASTContext &Context) {
+  DeclarationDoc Result;
+  const clang::comments::FullComment *Full =
+      Context.getCommentForDecl(&Declaration, nullptr);
+  if (Full == nullptr)
+    return Result;
+
+  const clang::comments::CommandTraits &Traits =
+      Context.getCommentCommandTraits();
+  for (auto Iterator = Full->child_begin(); Iterator != Full->child_end();
+       ++Iterator) {
+    const clang::comments::Comment *Child = *Iterator;
+    if (Child == nullptr)
+      continue;
+
+    appendCommonDocumentation(*Child, Traits, Result);
+  }
+
+  addRawBrief(Declaration, Context, Result);
+  return Result;
+}
 
 FunctionDoc extractDocumentation(const clang::FunctionDecl &Declaration,
                                  clang::ASTContext &Context) {
   FunctionDoc Result;
+  static_cast<DeclarationDoc &>(Result) = extractDocumentation(
+      static_cast<const clang::Decl &>(Declaration), Context);
   const clang::comments::FullComment *Full =
       Context.getCommentForDecl(&Declaration, nullptr);
   if (Full == nullptr)
@@ -193,42 +260,16 @@ FunctionDoc extractDocumentation(const clang::FunctionDecl &Declaration,
       continue;
     }
 
-    if (const auto *Verbatim =
-            llvm::dyn_cast<clang::comments::VerbatimBlockComment>(Child)) {
-      Result.Details.push_back(verbatimText(*Verbatim, Traits));
-      continue;
-    }
-
     if (const auto *Command =
             llvm::dyn_cast<clang::comments::BlockCommandComment>(Child)) {
       const llvm::StringRef Name = Command->getCommandName(Traits);
       const std::string Text = commentText(*Command);
       if (Text.empty())
         continue;
-      if (Name == "brief")
-        Result.Brief = appendWords(std::move(Result.Brief), Text);
-      else if (Name == "return" || Name == "returns" || Name == "result")
+      if (Name == "return" || Name == "returns" || Name == "result")
         Result.Returns = appendWords(std::move(Result.Returns), Text);
-      else if (Name == "details" || Name == "note" || Name == "remark" ||
-               Name == "remarks")
-        Result.Details.push_back(Text);
-      continue;
-    }
-
-    if (llvm::isa<clang::comments::ParagraphComment>(Child)) {
-      const std::string Text = commentText(*Child);
-      if (!Text.empty())
-        Result.Details.push_back(Text);
     }
   }
-
-  if (Result.Brief.empty()) {
-    if (const clang::RawComment *Raw =
-            Context.getRawCommentForAnyRedecl(&Declaration))
-      Result.Brief = normalizeText(Raw->getBriefText(Context));
-  }
-
-  std::erase(Result.Details, Result.Brief);
   return Result;
 }
 

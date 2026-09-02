@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(ASTrein VERSION 2.0.0 LANGUAGES C CXX)
+project(ASTrein VERSION 3.0.0 LANGUAGES C CXX)
 
 include(CTest)
 include(FetchContent)
@@ -195,7 +195,7 @@ if(BUILD_TESTING)
     COMMAND ${CMAKE_COMMAND}
       -DASTREIN=$<TARGET_FILE:astrein>
       -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/callbacks.hpp
-      -DSCHEMA_FILE=${CMAKE_CURRENT_SOURCE_DIR}/schema/astrein-ffi-api-v2.schema.json
+      -DSCHEMA_FILE=${CMAKE_CURRENT_SOURCE_DIR}/schema/astrein-ffi-api-v3.schema.json
       -DTEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/tests
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.cmake)
   add_test(
@@ -217,6 +217,7 @@ install(TARGETS astrein RUNTIME DESTINATION bin)
 install(FILES LICENSE THIRD_PARTY_NOTICES.md
   schema/astrein-ffi-api-v1.schema.json
   schema/astrein-ffi-api-v2.schema.json
+  schema/astrein-ffi-api-v3.schema.json
   DESTINATION share/astrein)
 if(ASTREIN_BUNDLED_LLVM)
   install(FILES "${llvm_project_SOURCE_DIR}/LICENSE.TXT"

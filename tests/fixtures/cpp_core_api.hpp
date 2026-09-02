@@ -10,22 +10,25 @@
 
 using ErrorCallbackT = void (*)(int error_code, const char *message);
 
+/** Default serial-port configuration. */
 struct SerialDefaultConfig {
-  int baud_rate;
+  int baud_rate = 115200; ///< Baud rate in bits per second.
 };
 
 struct SerialOpenConfig {
+  /** Device path used to open the port. */
   const char *device;
 };
 
+/** Physical serial-line configuration. */
 struct SerialLineConfig {
-  int data_bits;
-  int stop_bits;
+  int data_bits; ///< Number of data bits per frame.
+  int stop_bits; ///< Number of stop bits per frame.
 };
 
 struct SerialValidationConfig {
-  int baud_rate;
-  SerialLineConfig line;
+  int baud_rate;         ///< Baud rate to validate.
+  SerialLineConfig line; ///< Line configuration to validate.
 };
 
 extern "C" {

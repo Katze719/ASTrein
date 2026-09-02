@@ -1,6 +1,6 @@
 file(MAKE_DIRECTORY "${TEST_DIR}")
 set(SCHEMA_URI
-  "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v2.schema.json")
+  "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v3.schema.json")
 set(FULL_JSON "${TEST_DIR}/full.json")
 set(REDUCED_JSON "${TEST_DIR}/reduced.json")
 set(COMPDB_JSON "${TEST_DIR}/compdb.json")
@@ -96,6 +96,37 @@ if(NOT SCHEMA_DIALECT STREQUAL
   message(FATAL_ERROR "unexpected JSON Schema dialect or identifier")
 endif()
 
+# Version 3 deliberately permits unknown properties at every object boundary.
+# This keeps future optional output fields compatible with existing consumers.
+string(JSON ROOT_EXTENSIBLE GET "${SCHEMA_CONTENT}" additionalProperties)
+foreach(DEFINITION IN ITEMS
+    callback
+    callbackParameter
+    function
+    functionDocumentation
+    functionParameter
+    parameterDocumentation
+    declarationDocumentation
+    struct
+    structField)
+  string(JSON DEFINITION_EXTENSIBLE GET
+         "${SCHEMA_CONTENT}" "$defs" "${DEFINITION}" additionalProperties)
+  if(NOT DEFINITION_EXTENSIBLE OR NOT ROOT_EXTENSIBLE)
+    message(FATAL_ERROR
+            "schema object ${DEFINITION} does not permit future properties")
+  endif()
+endforeach()
+
+string(JSON STRUCT_DOC_SCHEMA GET
+       "${SCHEMA_CONTENT}" "$defs" struct properties doc "$ref")
+string(JSON STRUCT_FIELD_DOC_SCHEMA GET
+       "${SCHEMA_CONTENT}" "$defs" structField properties doc "$ref")
+if(NOT STRUCT_DOC_SCHEMA STREQUAL "#/$defs/declarationDocumentation" OR
+   NOT STRUCT_FIELD_DOC_SCHEMA STREQUAL
+       "#/$defs/declarationDocumentation")
+  message(FATAL_ERROR "schema does not describe struct documentation")
+endif()
+
 foreach(EXPECTED
     "\"error_code\""
     "\"message\""
@@ -158,7 +189,7 @@ string(JSON FUNCTION_COUNT LENGTH "${REDUCED_CONTENT}" functions)
 string(JSON STRUCT_COUNT LENGTH "${REDUCED_CONTENT}" structs)
 if(NOT SCHEMA_REFERENCE STREQUAL "${SCHEMA_URI}" OR
    NOT SCHEMA STREQUAL "astrein_ffi_api" OR
-   NOT SCHEMA_VERSION EQUAL 2 OR
+   NOT SCHEMA_VERSION EQUAL 3 OR
    NOT FUNCTION_COUNT EQUAL 4 OR
    NOT STRUCT_COUNT EQUAL 0)
   message(FATAL_ERROR "unexpected reduced schema header or function count")

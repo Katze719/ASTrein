@@ -1,17 +1,15 @@
 #pragma once
 
+#include "model/declaration_doc.hpp"
 #include "model/parameter_doc.hpp"
 
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace astrein {
 
-struct FunctionDoc {
-  std::string Brief;
+struct FunctionDoc : DeclarationDoc {
   std::string Returns;
-  std::vector<std::string> Details;
   std::unordered_map<std::string, ParameterDoc> Parameters;
 };
 

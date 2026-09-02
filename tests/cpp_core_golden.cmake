@@ -103,6 +103,9 @@ string(JSON RETURN_STRUCT_NAME GET "${ACTUAL}" structs 0 name)
 string(JSON RETURN_STRUCT_SIZE GET "${ACTUAL}" structs 0 size)
 string(JSON RETURN_STRUCT_ALIGNMENT GET "${ACTUAL}" structs 0 alignment)
 string(JSON RETURN_STRUCT_FIELD_TYPE GET "${ACTUAL}" structs 0 fields 0 type)
+string(JSON RETURN_STRUCT_DOC GET "${ACTUAL}" structs 0 doc brief)
+string(JSON RETURN_STRUCT_FIELD_DOC GET
+       "${ACTUAL}" structs 0 fields 0 doc brief)
 string(JSON POINTER_STRUCT_NAME GET "${ACTUAL}" structs 2 name)
 string(JSON POINTER_STRUCT_SIZE GET "${ACTUAL}" structs 2 size)
 string(JSON POINTER_STRUCT_ALIGNMENT GET "${ACTUAL}" structs 2 alignment)
@@ -112,6 +115,8 @@ string(JSON POINTER_STRUCT_FIELD_SIZE GET "${ACTUAL}" structs 2 fields 0 size)
 string(JSON NESTED_STRUCT_NAME GET "${ACTUAL}" structs 1 name)
 string(JSON NESTED_STRUCT_SIZE GET "${ACTUAL}" structs 1 size)
 string(JSON NESTED_STRUCT_ALIGNMENT GET "${ACTUAL}" structs 1 alignment)
+string(JSON NESTED_STRUCT_SECOND_FIELD_DOC GET
+       "${ACTUAL}" structs 1 fields 1 doc brief)
 string(JSON VALUE_STRUCT_NAME GET "${ACTUAL}" structs 3 name)
 string(JSON VALUE_STRUCT_SIZE GET "${ACTUAL}" structs 3 size)
 string(JSON VALUE_STRUCT_ALIGNMENT GET "${ACTUAL}" structs 3 alignment)
@@ -144,9 +149,14 @@ if(NOT STRUCT_COUNT EQUAL 4 OR
    NOT RETURN_STRUCT_SIZE EQUAL 4 OR
    NOT RETURN_STRUCT_ALIGNMENT EQUAL 4 OR
    NOT RETURN_STRUCT_FIELD_TYPE STREQUAL "int" OR
+   NOT RETURN_STRUCT_DOC STREQUAL "Default serial-port configuration." OR
+   NOT RETURN_STRUCT_FIELD_DOC STREQUAL
+       "Baud rate in bits per second." OR
    NOT NESTED_STRUCT_NAME STREQUAL "SerialLineConfig" OR
    NOT NESTED_STRUCT_SIZE EQUAL 8 OR
    NOT NESTED_STRUCT_ALIGNMENT EQUAL 4 OR
+   NOT NESTED_STRUCT_SECOND_FIELD_DOC STREQUAL
+       "Number of stop bits per frame." OR
    NOT POINTER_STRUCT_NAME STREQUAL "SerialOpenConfig" OR
    NOT POINTER_STRUCT_SIZE EQUAL 8 OR
    NOT POINTER_STRUCT_ALIGNMENT EQUAL 8 OR

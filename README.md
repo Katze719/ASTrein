@@ -39,7 +39,7 @@ generator:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v2.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v3.schema.json",
   "functions": [
     {
       "declaredIn": "api.hpp",
@@ -78,7 +78,7 @@ generator:
   ],
   "publicHeader": "api.hpp",
   "schema": "astrein_ffi_api",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "structs": []
 }
 ```
@@ -378,8 +378,16 @@ continuation character instead of `\`.
 ### Reduced FFI API
 
 Reduced output uses the
-[`astrein_ffi_api` JSON Schema](schema/astrein-ffi-api-v2.schema.json) and
+[`astrein_ffi_api` JSON Schema](schema/astrein-ffi-api-v3.schema.json) and
 identifies it through the top-level `$schema` property.
+
+Schema version 3 is designed for additive evolution. Every object permits
+unknown properties, so consumers must read the fields they understand and
+ignore the rest. New optional metadata can therefore be added without a schema
+version change. Removing or renaming fields, adding required fields, or
+changing existing semantics still requires a new schema version. The frozen
+version 1 and version 2 schemas remain available for their corresponding
+outputs.
 
 The top-level `structs` array contains the named structs reachable from an
 exported function's return type or parameter types, including through pointers,
@@ -429,8 +437,8 @@ Given an exported function that receives a nested struct through a pointer:
 
 ```cpp
 struct SerialLineConfig {
-  int data_bits;
-  int stop_bits;
+  int data_bits; ///< Number of data bits per frame.
+  int stop_bits; ///< Number of stop bits per frame.
 };
 
 struct SerialConfig {
@@ -486,12 +494,18 @@ On an x86-64 target, the relevant reduced output is:
       "alignment": 4,
       "fields": [
         {
+          "doc": {
+            "brief": "Number of data bits per frame."
+          },
           "name": "data_bits",
           "offset": 0,
           "size": 4,
           "type": "int"
         },
         {
+          "doc": {
+            "brief": "Number of stop bits per frame."
+          },
           "name": "stop_bits",
           "offset": 4,
           "size": 4,
@@ -507,10 +521,12 @@ On an x86-64 target, the relevant reduced output is:
 
 Callback parameters are modeled like top-level function parameters. For an
 unnamed callback parameter, its object contains `type` and omits `name`.
-Doxygen `brief`, `param`, `return`, `details`, `note`, and `remark`
-commands are projected into the reduced representation. Inline commands such
-as `@p` retain their formatting, and `@code` blocks become fenced Markdown
-code blocks.
+Doxygen `brief`, `param`, `return`, `details`, `note`, and `remark` commands
+are projected into the reduced representation. Documentation attached to a
+struct or one of its fields is emitted as a `doc` object with `brief` and
+`details`; both leading comments and trailing comments such as `///< ...` are
+supported. Inline commands such as `@p` retain their formatting, and `@code`
+blocks become fenced Markdown code blocks.
 
 Functions are ordered by qualified name for deterministic output.
 

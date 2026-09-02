@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v2.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/astrein-ffi-api-v3.schema.json",
   "functions": [
     {
       "declaredIn": "cpp_core_api.hpp",
@@ -188,13 +188,19 @@
   ],
   "publicHeader": "cpp_core/serial.h",
   "schema": "astrein_ffi_api",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "structs": [
     {
       "alignment": 4,
       "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Default serial-port configuration."
+      },
       "fields": [
         {
+          "doc": {
+            "brief": "Baud rate in bits per second."
+          },
           "name": "baud_rate",
           "offset": 0,
           "size": 4,
@@ -207,14 +213,23 @@
     {
       "alignment": 4,
       "declaredIn": "cpp_core_api.hpp",
+      "doc": {
+        "brief": "Physical serial-line configuration."
+      },
       "fields": [
         {
+          "doc": {
+            "brief": "Number of data bits per frame."
+          },
           "name": "data_bits",
           "offset": 0,
           "size": 4,
           "type": "int"
         },
         {
+          "doc": {
+            "brief": "Number of stop bits per frame."
+          },
           "name": "stop_bits",
           "offset": 4,
           "size": 4,
@@ -229,6 +244,9 @@
       "declaredIn": "cpp_core_api.hpp",
       "fields": [
         {
+          "doc": {
+            "brief": "Device path used to open the port."
+          },
           "name": "device",
           "offset": 0,
           "size": 8,
@@ -243,12 +261,18 @@
       "declaredIn": "cpp_core_api.hpp",
       "fields": [
         {
+          "doc": {
+            "brief": "Baud rate to validate."
+          },
           "name": "baud_rate",
           "offset": 0,
           "size": 4,
           "type": "int"
         },
         {
+          "doc": {
+            "brief": "Line configuration to validate."
+          },
           "name": "line",
           "offset": 4,
           "size": 8,

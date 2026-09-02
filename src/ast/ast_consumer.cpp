@@ -97,9 +97,9 @@ void AstConsumer::writeReduced(
   llvm::json::Object Root;
   Root["$schema"] =
       "https://raw.githubusercontent.com/Katze719/ASTrein/main/schema/"
-      "astrein-ffi-api-v2.schema.json";
+      "astrein-ffi-api-v3.schema.json";
   Root["schema"] = "astrein_ffi_api";
-  Root["schemaVersion"] = 2;
+  Root["schemaVersion"] = 3;
   Root["publicHeader"] = PublicHeader;
 
   clang::ASTNameGenerator NameGenerator(Context);
