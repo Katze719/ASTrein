@@ -212,6 +212,13 @@ if(BUILD_TESTING)
       -DGOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/tests/expected/cpp_core_api.json
       -DTEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/tests
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp_core_golden.cmake)
+  add_test(
+    NAME astrein.shared-type-deduplication
+    COMMAND ${CMAKE_COMMAND}
+      -DASTREIN=$<TARGET_FILE:astrein>
+      -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/shared_types.hpp
+      -DTEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/tests
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/shared_types.cmake)
 endif()
 
 install(TARGETS astrein RUNTIME DESTINATION bin)
